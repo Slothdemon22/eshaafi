@@ -1,11 +1,11 @@
 import express from "express";
-import { getProfileDoctor ,addAvailabilityService } from '../controllers/doctorController.js';
+import { getProfileDoctor ,addAvailabilityDoctor } from '../controllers/doctorController.js';
 
 
 const doctorRouter=express.Router();
 
 doctorRouter.get("/profile", getProfileDoctor);
-doctorRouter.post("/addAvailability", addAvailabilityService);
+doctorRouter.post("/addAvailability", addAvailabilityDoctor);
 
 
 

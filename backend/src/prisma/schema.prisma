@@ -1,3 +1,17 @@
+// This tells Prisma how to connect to your database
+datasource db {
+  provider = "postgresql" // or "mysql" / "sqlite" depending on your DB
+  url      = env("DATABASE_URL")
+}
+
+// This tells Prisma to generate the client in node_modules
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+
+
 enum Role {
   PATIENT
   DOCTOR
