@@ -1,4 +1,4 @@
-import {addAvailabilityService,getProfileDoctor} from '../services/doctorService.js';
+import {addAvailabilityService,getProfileServiceDoctor} from '../services/doctorService.js';
 
 
 export const getProfileDoctor =async (req,res)=>
