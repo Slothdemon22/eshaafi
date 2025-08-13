@@ -28,7 +28,9 @@ app.use(cors({
 app.use('/api/users', userRouter);
 app.use('/api/admin', adminMiddleware, adminRouter);
 app.use('/api/bookings', authMiddleware, bookingRouter);
-app.use("/api/doctor",doctorMiddleware,doctorRouter);
+
+// Mount doctor routes with proper middleware handling
+app.use("/api/doctor", doctorRouter);
 app.get('/', (req, res) => {
   res.send('Welcome to the Eshaafi API');
 });

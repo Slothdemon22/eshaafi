@@ -1,12 +1,21 @@
 import express from "express";
-import { getProfileDoctor ,addAvailabilityDoctor } from '../controllers/doctorController.js';
-
+import { getProfileDoctor, addAvailabilityDoctor, updateDoctorProfile, getDoctorAppointments, getDoctorAvailability, deleteAvailabilitySlot, submitDoctorApplication, getDoctorAvailabilityWithBookingsController, getAllDoctorsForBooking, addMultipleAvailabilitySlots } from '../controllers/doctorController.js';
+import { doctorMiddleware } from '../middlewares/doctorMiddleware.js';
 
 const doctorRouter=express.Router();
 
-doctorRouter.get("/profile", getProfileDoctor);
-doctorRouter.post("/addAvailability", addAvailabilityDoctor);
+// Public endpoints (no authentication required)
+doctorRouter.post('/apply', submitDoctorApplication);
+doctorRouter.get('/all', getAllDoctorsForBooking);
 
-
+// Protected endpoints (require doctor authentication)
+doctorRouter.get("/profile", doctorMiddleware, getProfileDoctor);
+doctorRouter.put("/profile", doctorMiddleware, updateDoctorProfile);
+doctorRouter.get("/appointments", doctorMiddleware, getDoctorAppointments);
+doctorRouter.get("/availability", doctorMiddleware, getDoctorAvailability);
+doctorRouter.post("/addAvailability", doctorMiddleware, addAvailabilityDoctor);
+doctorRouter.delete("/availability/:slotId", doctorMiddleware, deleteAvailabilitySlot);
+doctorRouter.post("/availability/slots", doctorMiddleware, addMultipleAvailabilitySlots);
+doctorRouter.get("/availability/bookings", getDoctorAvailabilityWithBookingsController);
 
 export default doctorRouter;

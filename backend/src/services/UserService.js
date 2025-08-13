@@ -6,18 +6,16 @@ import prisma from '../prisma.js';
 import bcrypt from 'bcrypt';
 
 
-export const authServiceRegister = async (name ,email,password,role)=>
+export const authServiceRegister = async (name ,email,password)=>
 {
+    console.log("Auth Service Register called with:", { name, email });
 
-    console.log("Auth Service Register called with:", { name, email,password });
- 
-
-    const user = await prisma.User.create({
+    const user = await prisma.user.create({
       data: {
         name,
         email,
-        password: await bcrypt.hash(password, 10), // Hash the password
-        role: role ? role : 'PATIENT' // Assuming role is a string like 'user' or 'admin'
+        password: await bcrypt.hash(password, 10),
+        role: 'PATIENT'
       }
     });
     console.log("User created:", user);
@@ -28,6 +26,11 @@ export const authServiceRegister = async (name ,email,password,role)=>
 export  const authServiceLogin = async (email,password) => {
   console.log("Auth Service Login called with email:", email);
   
+  // Hardcoded admin credentials
+  if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD && email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+    return { id: 0, name: 'Admin', email, role: 'ADMIN' };
+  }
+
   const user = await prisma.user.findUnique({
     where: { email }
   });
@@ -56,10 +59,13 @@ export const authServiceGetUsers = async () => {
   return users;
 }
 
-export const GetBookedAppointmentService = async (Id) => {
-  console.log("Get Booked Appointment Service called with ID:", Id);
+export const GetBookedAppointmentService = async (id) => {
+  console.log("Get Booked Appointment Service called with ID:", id);
   const booking = await prisma.booking.findUnique({
-    where: { id: Number(id) }
+    where: { id: Number(id) },
+    include: {
+      prescription: true
+    }
   });
   console.log("Booking found:", booking);
   return booking;
@@ -69,10 +75,15 @@ export const GetBookedAppointmentService = async (Id) => {
 export const getAppointmentsServiceUser = async (userId) => {
   console.log("Get Appointments Service User called with userId:", userId);
   
-  const appointments = await prisma.appointment.findMany({
-    where: { userId },
+  const appointments = await prisma.booking.findMany({
+    where: { patientId: userId },
     include: {
-      doctor: true
+      doctor: {
+        include: {
+          user: true
+        }
+      },
+      prescription: true
     }
   });
   
