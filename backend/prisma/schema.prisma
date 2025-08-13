@@ -1,0 +1,109 @@
+// This tells Prisma how to connect to your database
+datasource db {
+  provider = "postgresql" // or "mysql" / "sqlite" depending on your DB
+  url      = env("DATABASE_URL")
+}
+
+// This tells Prisma to generate the client in node_modules
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  name     String
+  email    String   @unique
+  password String
+  role     Role     @default(PATIENT)
+
+  doctor   Doctor?
+  bookings Booking[] @relation("PatientBookings")
+}
+
+model Doctor {
+  id         Int               @id @default(autoincrement())
+  location   String
+  specialty  String
+  userId     Int               @unique
+  user       User              @relation(fields: [userId], references: [id])
+  bookings   Booking[]         @relation("DoctorBookings")
+  slots      AvailabilitySlot[] // Doctor's available time slots
+}
+
+model AvailabilitySlot {
+  id          Int       @id @default(autoincrement())
+  doctorId    Int
+  doctor      Doctor    @relation(fields: [doctorId], references: [id])
+  date        DateTime  // Specific date for availability
+  startTime   String    // e.g., "09:00"
+  endTime     String    // e.g., "09:30"
+  duration    Int       // Duration in minutes (e.g., 30 or 60)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([doctorId, date, startTime, endTime]) // Ensure unique slots per doctor per date
+}
+
+enum BookingStatus {
+  PENDING
+  BOOKED
+  REJECTED
+  COMPLETED
+}
+
+model Booking {
+  id        Int           @id @default(autoincrement())
+  dateTime  DateTime
+  doctorId  Int
+  patientId Int
+  status    BookingStatus @default(PENDING)
+  reason    String?
+  symptoms  String?
+
+  doctor    Doctor        @relation("DoctorBookings", fields: [doctorId], references: [id])
+  patient   User          @relation("PatientBookings", fields: [patientId], references: [id])
+  prescription Prescription?
+}
+
+model Prescription {
+  id          Int      @id @default(autoincrement())
+  bookingId   Int      @unique
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  medications String   // JSON string of medications
+  dosage      String   // Dosage instructions
+  frequency   String   // How often to take
+  duration    String   // How long to take
+  notes       String?  // Additional notes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model DoctorApplication {
+  id                Int                @id @default(autoincrement())
+  name              String
+  email             String
+  phone             String?
+  location          String
+  specialty         String
+  experienceYears   Int?
+  credentials       String?
+  status            ApplicationStatus  @default(PENDING)
+  generatedPassword String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}

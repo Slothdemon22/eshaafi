@@ -1,16 +1,16 @@
 
-import { bookingServiceAddBooking,bookingServiceDeleteBooking,changeBookingServiceChangeStatus,GetBookedAppointmentService,bookingServiceGetAllBookings } from '../services/bookingService.js';
+import { bookingServiceAddBooking,bookingServiceDeleteBooking,changeBookingServiceChangeStatus,GetBookedAppointmentService,bookingServiceGetAllBookings, createPrescriptionService, getPrescriptionService, updatePrescriptionService } from '../services/bookingService.js';
 
 export const bookAppointment = async (req, res) => {
 
  try
  {
-    const { doctorId, dateTime } = req.body;
+    const { doctorId, dateTime, reason, symptoms } = req.body;
     const patientId = req.user.id;
-    console.log("Booking appointment with data:", { patientId, doctorId, dateTime });
-    const booking = await bookingServiceAddBooking(patientId, doctorId, dateTime);
+    console.log("Booking appointment with data:", { patientId, doctorId, dateTime, reason, symptoms });
+    const booking = await bookingServiceAddBooking(patientId, doctorId, dateTime, reason, symptoms);
    // console.log("Booking created:", booking);
-    res.status(201).json({ message: 'Appointment booked successfully', booking });
+    res.status(201).json({ message: 'Appointment booked successfully and pending doctor approval', booking });
 
 
  } catch (error) 
@@ -81,4 +81,48 @@ export const GetBooking = async (req,res)=>
     }
 
 
+}
+
+export const createPrescription = async (req, res) => {
+    try {
+        const { bookingId, medications, dosage, frequency, duration, notes } = req.body;
+        console.log("Creating prescription with data:", { bookingId, medications, dosage, frequency, duration, notes });
+        
+        const prescription = await createPrescriptionService(bookingId, medications, dosage, frequency, duration, notes);
+        res.status(201).json({ message: 'Prescription created successfully', prescription });
+    } catch (error) {
+        console.error("Error creating prescription:", error);
+        res.status(500).json({ error: 'Failed to create prescription' });
+    }
+}
+
+export const getPrescription = async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+        console.log("Getting prescription for booking:", bookingId);
+        
+        const prescription = await getPrescriptionService(bookingId);
+        if (!prescription) {
+            return res.status(404).json({ message: 'Prescription not found' });
+        }
+        
+        res.status(200).json({ message: 'Prescription found', prescription });
+    } catch (error) {
+        console.error("Error getting prescription:", error);
+        res.status(500).json({ error: 'Failed to get prescription' });
+    }
+}
+
+export const updatePrescription = async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+        const { medications, dosage, frequency, duration, notes } = req.body;
+        console.log("Updating prescription for booking:", bookingId);
+        
+        const prescription = await updatePrescriptionService(bookingId, medications, dosage, frequency, duration, notes);
+        res.status(200).json({ message: 'Prescription updated successfully', prescription });
+    } catch (error) {
+        console.error("Error updating prescription:", error);
+        res.status(500).json({ error: 'Failed to update prescription' });
+    }
 }

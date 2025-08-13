@@ -1,37 +1,40 @@
 import prisma  from '../prisma.js';
 import bcrypt from 'bcrypt';
 
-export const adminServiceRegister = async (name, email, password, role, location, specialty) => {
+export const adminServiceCreateDoctorFromApplication = async (applicationId) => {
+    const application = await prisma.doctorApplication.findUnique({ where: { id: Number(applicationId) } });
+    if (!application) throw new Error('Application not found');
+    if (application.status !== 'PENDING') throw new Error('Application already processed');
 
-
-    console.log("Admin Service Register called with:", { name, email, password, role });
-    
-    const user = await prisma.User.create({
+    const plainPassword = application.generatedPassword || Math.random().toString(36).slice(-10);
+    const user = await prisma.user.create({
         data: {
-        name,
-        email,
-        password: await bcrypt.hash(password, 10), // Hash the password
-        role: "DOCTOR" // Assuming role is a string like 'user' or 'admin'
+            name: application.name,
+            email: application.email,
+            password: await bcrypt.hash(plainPassword, 10),
+            role: 'DOCTOR'
         }
     });
-    const data=await prisma.Doctor.create({
+    await prisma.doctor.create({
         data: {
-            location,
+            location: application.location,
             userId: user.id,
-            specialty
+            specialty: application.specialty
         }
     });
-    console.log("Doctor created:", data);
-    console.log("User created:", user);
-    return user;
-    }
+    await prisma.doctorApplication.update({
+        where: { id: application.id },
+        data: { status: 'APPROVED', generatedPassword: plainPassword }
+    });
+    return { user, plainPassword };
+}
 
 
 
 export const adminServiceGetDoctors = async () => {
     console.log("Admin Service Get Doctors called");
     
-    const doctors = await prisma.Doctor.findMany({
+    const doctors = await prisma.doctor.findMany({
         include: {
             user: true // Include user details
         }
@@ -39,4 +42,23 @@ export const adminServiceGetDoctors = async () => {
     console.log("Doctors fetched:", doctors);
     
     return doctors;
+}
+
+export const adminServiceGetDoctorApplications = async () => {
+    const applications = await prisma.doctorApplication.findMany({
+        orderBy: { createdAt: 'desc' }
+    });
+    return applications;
+}
+
+export const adminServiceSubmitDoctorApplication = async (payload) => {
+    const existing = await prisma.doctorApplication.findFirst({ where: { email: payload.email, status: 'PENDING' } });
+    if (existing) throw new Error('Application already submitted');
+    const app = await prisma.doctorApplication.create({ data: payload });
+    return app;
+}
+
+export const adminServiceRejectDoctorApplication = async (id) => {
+    const app = await prisma.doctorApplication.update({ where: { id: Number(id) }, data: { status: 'REJECTED' } });
+    return app;
 }
