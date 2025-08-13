@@ -1,48 +1,48 @@
 // Environment configuration
 export const config = {
   backendUri: process.env.NEXT_PUBLIC_BACKEND_URI || 'http://localhost:5000',
-  apiBaseUrl: `${process.env.NEXT_PUBLIC_BACKEND_URI || 'http://localhost:5000'}/api`,
+  apiBaseUrl: `${process.env.NEXT_PUBLIC_BACKEND_URI || 'http://localhost:5000'}`,
 } as const;
 
 // API endpoints
 export const API_ENDPOINTS = {
-  // Auth endpoints
-  login: '/auth/login',
-  register: '/auth/register',
-  logout: '/auth/logout',
+  // Auth endpoints (handled by user routes)
+  login: '/api/users/login',
+  register: '/api/users/register',
+  logout: '/api/users/logout',
   
   // User endpoints
-  userProfile: '/users/profile',
-  userAppointments: '/users/appointments',
-  changePassword: '/users/change-password',
-  getUsers: '/users/getUsers',
-  updateUser: (id: string) => `/users/users/${id}`,
-  deleteUser: (id: string) => `/users/users/${id}`,
+  userProfile: '/api/users/profile',
+  userAppointments: '/api/users/appointments',
+  changePassword: '/api/users/change-password',
+  getUsers: '/api/users/getUsers',
+  updateUser: (id: string) => `/api/users/users/${id}`,
+  deleteUser: (id: string) => `/api/users/users/${id}`,
   
   // Doctor endpoints
-  doctorProfile: '/doctor/profile',
-  doctorAppointments: '/doctor/appointments',
-  doctorAvailability: '/doctor/availability',
-  doctorSlots: '/doctor/availability/slots',
-  addAvailability: '/doctor/addAvailability',
-  deleteAvailability: (slotId: string) => `/doctor/availability/${slotId}`,
-  doctorApply: '/doctor/apply',
-  allDoctors: '/doctor/all',
+  doctorProfile: '/api/doctor/profile',
+  doctorAppointments: '/api/doctor/appointments',
+  doctorAvailability: '/api/doctor/availability',
+  doctorSlots: '/api/doctor/availability/slots',
+  addAvailability: '/api/doctor/addAvailability',
+  deleteAvailability: (slotId: string) => `/api/doctor/availability/${slotId}`,
+  doctorApply: '/api/doctor/apply',
+  allDoctors: '/api/doctor/all',
   doctorAvailabilityBookings: (doctorId: string, date: string) => 
-    `/doctor/availability/bookings?doctorId=${doctorId}&date=${date}`,
+    `/api/doctor/availability/bookings?doctorId=${doctorId}&date=${date}`,
   
   // Booking endpoints
-  bookAppointment: '/bookings/book',
-  deleteBooking: (bookingId: string) => `/bookings/deleteBooking/${bookingId}`,
-  changeBookingStatus: '/bookings/changeBookingStatus',
-  prescription: '/bookings/prescription',
-  prescriptionById: (appointmentId: string) => `/bookings/prescription/${appointmentId}`,
+  bookAppointment: '/api/bookings/book',
+  deleteBooking: (bookingId: string) => `/api/bookings/deleteBooking/${bookingId}`,
+  changeBookingStatus: '/api/bookings/changeBookingStatus',
+  prescription: '/api/bookings/prescription',
+  prescriptionById: (appointmentId: string) => `/api/bookings/prescription/${appointmentId}`,
   
   // Admin endpoints
-  adminStats: '/admin/stats',
-  adminApplications: '/admin/applications',
-  approveApplication: (id: string) => `/admin/applications/${id}/approve`,
-  rejectApplication: (id: string) => `/admin/applications/${id}/reject`,
+  adminStats: '/api/admin/stats',
+  adminApplications: '/api/admin/applications',
+  approveApplication: (id: string) => `/api/admin/applications/${id}/approve`,
+  rejectApplication: (id: string) => `/api/admin/applications/${id}/reject`,
 } as const;
 
 // Helper function to build full API URLs
