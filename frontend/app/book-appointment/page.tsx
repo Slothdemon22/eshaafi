@@ -24,12 +24,12 @@ import { buildApiUrl, API_ENDPOINTS } from '@/lib/config';
 
 interface Doctor {
   id: number;
-  user: {
-    name: string;
-    email: string;
-  };
+  name: string;
+  email: string;
   specialty: string;
-  experience: number;
+  experience?: number;
+  location?: string;
+  availability?: any;
 }
 
 interface AvailabilitySlot {
@@ -271,13 +271,13 @@ const BookAppointmentPage: React.FC = () => {
                         <Stethoscope className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-[#1F2937]">{doctor.user.name}</h3>
+                        <h3 className="font-semibold text-[#1F2937]">{doctor.name}</h3>
                         <p className="text-sm text-[#4B5563]">{doctor.specialty}</p>
                       </div>
                     </div>
                     <div className="text-sm text-[#4B5563]">
                       <p>Experience: {doctor.experience} years</p>
-                      <p>{doctor.user.email}</p>
+                      <p>{doctor.email}</p>
                     </div>
                   </motion.div>
                 ))}
