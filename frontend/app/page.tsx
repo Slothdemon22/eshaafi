@@ -195,15 +195,15 @@ const HomePage: React.FC = () => {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative"
             >
-              <div className="relative h-[500px] rounded-2xl overflow-hidden shadow-2xl">
+              <div className="relative h-[500px] rounded-2xl overflow-hidden shadow-xl shadow-green-200" >
                 <Image
-                  src="/professional-doc.png"
+                  src="https://img.freepik.com/premium-vector/doctors-with-stethoscope-group-medical-students-nurses-vector-illustration_650087-840.jpg?w=1000"
                   alt="Professional doctor consultation"
                   fill
-                  className="object-cover"
+                  className="object-center object-fill rounded-2xl shadow-xl "
                   priority
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-green/20 to-transparent"></div>
               </div>
               
               {/* Floating stats card */}
