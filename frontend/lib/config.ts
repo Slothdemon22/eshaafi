@@ -7,9 +7,9 @@ export const config = {
 // API endpoints
 export const API_ENDPOINTS = {
   // Auth endpoints
-  login: '/auth/login',
-  register: '/auth/register',
-  logout: '/auth/logout',
+  login: '/users/login',
+  register: '/users/register',
+  logout: '/users/logout',
   
   // User endpoints
   userProfile: '/users/profile',

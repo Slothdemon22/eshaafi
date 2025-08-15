@@ -39,10 +39,12 @@ const DoctorApplyPage: React.FC = () => {
       setIsSubmitting(true);
       setError(null);
       setSuccess(null);
+      // Convert experienceYears to a number
+      const payload = { ...data, experienceYears: data.experienceYears ? Number(data.experienceYears) : undefined };
       const res = await fetch(buildApiUrl(API_ENDPOINTS.doctorApply), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || 'Failed to submit');
