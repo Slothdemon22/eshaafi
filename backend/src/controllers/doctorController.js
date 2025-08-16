@@ -1,7 +1,8 @@
 import {addAvailabilityService,getProfileServiceDoctor, getDoctorAvailabilityWithBookings, getAllDoctorsWithAvailability, deleteAvailabilitySlotService} from '../services/doctorService.js';
 import { adminServiceSubmitDoctorApplication } from '../services/adminService.js';
 import prisma from '../prisma.js';
-import { Speciality } from '@prisma/client';
+import pkg from '@prisma/client';
+const { Speciality } = pkg;
 
 export const getProfileDoctor =async (req,res)=>
 {
