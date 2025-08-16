@@ -6,12 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { 
-  Calendar, 
-  Clock, 
-  User, 
-  Stethoscope, 
-  MessageSquare, 
+import {
+  Calendar,
+  Clock,
+  User,
+  Stethoscope,
+  MessageSquare,
   AlertCircle,
   ArrowLeft,
   CheckCircle,
@@ -37,6 +37,7 @@ interface AvailabilitySlot {
   startTime: string;
   endTime: string;
   isBooked: boolean;
+  location?: string;
 }
 
 const appointmentSchema = z.object({
@@ -101,7 +102,7 @@ const BookAppointmentPage: React.FC = () => {
     };
 
     if (isAuthenticated) {
-    fetchDoctors();
+      fetchDoctors();
     }
   }, [isAuthenticated, addToast]);
 
@@ -158,16 +159,16 @@ const BookAppointmentPage: React.FC = () => {
   const onSubmit = async (data: AppointmentFormData) => {
     try {
       setIsLoading(true);
-      
+
       const bookingData = {
         doctorId: parseInt(data.doctorId),
         dateTime: `${data.date}T${data.time}:00`,
         reason: data.reason,
         symptoms: data.symptoms || ''
       };
-      
+
       console.log('Submitting booking data:', bookingData);
-      
+
       const response = await fetch(buildApiUrl(API_ENDPOINTS.bookAppointment), {
         method: 'POST',
         headers: {
@@ -178,12 +179,12 @@ const BookAppointmentPage: React.FC = () => {
       });
 
       if (response.ok) {
-      addToast({
-        type: 'success',
-        title: 'Appointment Booked!',
-        message: 'Your appointment has been successfully booked. You will receive a confirmation shortly.',
-      });
-      router.push('/appointments');
+        addToast({
+          type: 'success',
+          title: 'Appointment Booked!',
+          message: 'Your appointment has been successfully booked. You will receive a confirmation shortly.',
+        });
+        router.push('/appointments');
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to book appointment');
@@ -229,7 +230,7 @@ const BookAppointmentPage: React.FC = () => {
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Home</span>
           </Link>
-          
+
           <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-bold text-[#1F2937] mb-4 heading-font">
               Book an Appointment
@@ -260,11 +261,10 @@ const BookAppointmentPage: React.FC = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => handleDoctorSelect(doctor)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                      selectedDoctor?.id === doctor.id
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${selectedDoctor?.id === doctor.id
                         ? 'border-[#0E6BA8] bg-[#F0F9FF] shadow-elevated'
                         : 'border-gray-200 hover:border-[#0E6BA8]/50 hover:shadow-professional'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center space-x-3 mb-3">
                       <div className="w-10 h-10 gradient-primary rounded-full flex items-center justify-center">
@@ -275,8 +275,9 @@ const BookAppointmentPage: React.FC = () => {
                         <p className="text-sm text-[#4B5563]">{doctor.specialty}</p>
                       </div>
                     </div>
-                    <div className="text-sm text-[#4B5563]">
-                      <p>Experience: {doctor.experience} years</p>
+                    <div className="text-sm text-[#4B5563] space-y-1">
+
+
                       <p>{doctor.email}</p>
                     </div>
                   </motion.div>
@@ -338,15 +339,19 @@ const BookAppointmentPage: React.FC = () => {
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleSlotSelect(slot)}
                         disabled={slot.isBooked}
-                        className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                          slot.isBooked
+                        className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 ${slot.isBooked
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             : selectedTime === slot.startTime
-                            ? 'bg-[#0E6BA8] text-white shadow-elevated'
-                            : 'bg-white border border-gray-200 text-[#1F2937] hover:border-[#0E6BA8] hover:shadow-professional'
-                        }`}
+                              ? 'bg-[#0E6BA8] text-white shadow-elevated'
+                              : 'bg-white border border-gray-200 text-[#1F2937] hover:border-[#0E6BA8] hover:shadow-professional'
+                          }`}
                       >
-                        {slot.startTime}
+                        <div>{slot.startTime}</div>
+                        {slot.location && (
+                          <div className="text-xs mt-1 text-[#1CA7A6] font-medium truncate" title={slot.location}>
+                            {slot.location}
+                          </div>
+                        )}
                       </motion.button>
                     ))}
                   </div>

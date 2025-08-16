@@ -22,6 +22,7 @@ interface TimeSlot {
   endTime: string;
   duration: number;
   isSelected: boolean;
+  location?: string;
 }
 
 const DoctorAvailabilityPage: React.FC = () => {
@@ -46,7 +47,8 @@ const DoctorAvailabilityPage: React.FC = () => {
         startTime: startTime30,
         endTime: endTime30,
         duration: 30,
-        isSelected: false
+        isSelected: false,
+        location: ''
       });
 
       // 1-hour slot (if not the last hour)
@@ -57,7 +59,8 @@ const DoctorAvailabilityPage: React.FC = () => {
           startTime: startTime60,
           endTime: endTime60,
           duration: 60,
-          isSelected: false
+          isSelected: false,
+          location: ''
         });
       }
 
@@ -68,7 +71,8 @@ const DoctorAvailabilityPage: React.FC = () => {
         startTime: startTime30b,
         endTime: endTime30b,
         duration: 30,
-        isSelected: false
+        isSelected: false,
+        location: ''
       });
     }
 
@@ -140,7 +144,8 @@ const DoctorAvailabilityPage: React.FC = () => {
         date: selectedDate,
         startTime: slot.startTime,
         endTime: slot.endTime,
-        duration: slot.duration
+        duration: slot.duration,
+        location: slot.location || ''
       }));
 
       const response = await fetch('http://localhost:5000/api/doctor/availability/slots', {
@@ -269,27 +274,38 @@ const DoctorAvailabilityPage: React.FC = () => {
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     {timeSlots.map((slot, index) => (
-                      <motion.button
-                        key={`${slot.startTime}-${slot.endTime}`}
-                        type="button"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleSlotClick(index)}
-                        className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-                          slot.isSelected
-                            ? 'bg-green-500 border-green-500 text-white shadow-lg'
-                            : 'bg-white border-gray-200 text-gray-700 hover:border-green-300 hover:bg-green-50'
-                        }`}
-                      >
-                        <div className="text-center">
-                          <div className="font-semibold text-sm">{slot.startTime}</div>
-                          <div className="text-xs opacity-75">to</div>
-                          <div className="font-semibold text-sm">{slot.endTime}</div>
-                          <div className="text-xs mt-1">
-                            ({slot.duration} min)
+                      <div key={`${slot.startTime}-${slot.endTime}`} className="flex flex-col gap-2">
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleSlotClick(index)}
+                          className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                            slot.isSelected
+                              ? 'bg-green-500 border-green-500 text-white shadow-lg'
+                              : 'bg-white border-gray-200 text-gray-700 hover:border-green-300 hover:bg-green-50'
+                          }`}
+                        >
+                          <div className="text-center">
+                            <div className="font-semibold text-sm">{slot.startTime}</div>
+                            <div className="text-xs opacity-75">to</div>
+                            <div className="font-semibold text-sm">{slot.endTime}</div>
+                            <div className="text-xs mt-1">({slot.duration} min)</div>
                           </div>
-                        </div>
-                      </motion.button>
+                        </motion.button>
+                        {slot.isSelected && (
+                          <input
+                            type="text"
+                            placeholder="Location (e.g. Clinic Room 1)"
+                            value={slot.location || ''}
+                            onChange={e => {
+                              const value = e.target.value;
+                              setTimeSlots(prev => prev.map((s, i) => i === index ? { ...s, location: value } : s));
+                            }}
+                            className="input-field w-full text-xs mt-1"
+                          />
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}

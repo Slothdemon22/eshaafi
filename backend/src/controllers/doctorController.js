@@ -25,7 +25,7 @@ export const getProfileDoctor =async (req,res)=>
 export const addAvailabilityDoctor = async (req, res) => {
     try {
         const doctorId = req.user.id;
-        const { date, startTime, endTime, duration } = req.body;
+        const { date, startTime, endTime, duration, location } = req.body;
         
         // First get the doctor record
         const doctor = await prisma.doctor.findUnique({
@@ -36,7 +36,7 @@ export const addAvailabilityDoctor = async (req, res) => {
             return res.status(404).json({ error: 'Doctor not found' });
         }
         
-        const availabilityData = await addAvailabilityService(doctor.id, date, startTime, endTime, duration);
+        const availabilityData = await addAvailabilityService(doctor.id, date, startTime, endTime, duration, location);
         res.status(201).json({ message: 'Availability added successfully', availability: availabilityData });
     } catch (error) {
         console.error("Error adding availability:", error);
@@ -81,7 +81,7 @@ export const addMultipleAvailabilitySlots = async (req, res) => {
 
         const createdSlots = [];
         for (const slot of slots) {
-            const { date, startTime, endTime, duration } = slot;
+            const { date, startTime, endTime, duration, location } = slot;
             
             // Check if slot already exists
             const existingSlot = await prisma.availabilitySlot.findFirst({
@@ -100,7 +100,8 @@ export const addMultipleAvailabilitySlots = async (req, res) => {
                         date: new Date(date),
                         startTime: startTime,
                         endTime: endTime,
-                        duration: duration
+                        duration: duration,
+                        location: location || null
                     }
                 });
                 createdSlots.push(newSlot);

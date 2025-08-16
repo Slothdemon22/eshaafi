@@ -69,6 +69,7 @@ model AvailabilitySlot {
   startTime   String    // e.g., "09:00"
   endTime     String    // e.g., "09:30"
   duration    Int       // Duration in minutes (e.g., 30 or 60)
+  location    String?   // Location for this slot (optional)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
