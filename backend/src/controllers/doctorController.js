@@ -1,6 +1,7 @@
 import {addAvailabilityService,getProfileServiceDoctor, getDoctorAvailabilityWithBookings, getAllDoctorsWithAvailability, deleteAvailabilitySlotService} from '../services/doctorService.js';
 import { adminServiceSubmitDoctorApplication } from '../services/adminService.js';
 import prisma from '../prisma.js';
+import { Speciality } from '@prisma/client';
 
 export const getProfileDoctor =async (req,res)=>
 {
@@ -141,11 +142,53 @@ export const deleteAvailabilitySlot = async (req, res) => {
     }
 };
 
+// Utility to get specialities from Prisma enum
+export const getSpecialities = (req, res) => {
+  const specialities = Object.keys(Speciality);
+  const labels = {
+    GENERAL_DOCTOR: 'General Doctor (Family Medicine)',
+    PEDIATRICS: 'Child Doctor (Pediatrics)',
+    CARDIOLOGY: 'Heart Doctor (Cardiology)',
+    DERMATOLOGY: 'Skin Doctor (Dermatology)',
+    NEUROLOGY: 'Brain & Nerves Doctor (Neurology)',
+    ORTHOPEDICS: 'Bone & Joint Doctor (Orthopedics)',
+    OPHTHALMOLOGY: 'Eye Doctor (Ophthalmology)',
+    ENT: 'Ear, Nose & Throat Doctor (ENT)',
+    GYNECOLOGY: 'Women’s Health Doctor (Gynecology)',
+    UROLOGY: 'Urine & Kidney Doctor (Urology)',
+    GASTROENTEROLOGY: 'Stomach Doctor (Gastroenterology)',
+    ENDOCRINOLOGY: 'Diabetes & Hormone Doctor (Endocrinology)',
+    ONCOLOGY: 'Cancer Doctor (Oncology)',
+    PSYCHIATRY: 'Mental Health Doctor (Psychiatry)',
+    PULMONOLOGY: 'Lungs Doctor (Pulmonology)',
+    RHEUMATOLOGY: 'Arthritis Doctor (Rheumatology)',
+    DENTIST: 'Dentist',
+    PHYSIOTHERAPIST: 'Physiotherapist',
+    DIET_NUTRITION: 'Diet & Nutrition Expert',
+  };
+  res.json(specialities.map(key => ({ value: key, label: labels[key] })));
+};
+
+export const getDoctorCountsBySpeciality = async (req, res) => {
+  try {
+    const specialities = Object.keys(Speciality);
+    const counts = {};
+    for (const spec of specialities) {
+      counts[spec] = await prisma.doctor.count({ where: { specialty: spec } });
+    }
+    res.json(counts);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch doctor counts by speciality' });
+  }
+};
+
 export const updateDoctorProfile = async (req, res) => {
     try {
         const doctorId = req.user.id;
         const { location, specialty } = req.body;
-        
+        if (specialty && !Object.values(Speciality).includes(specialty)) {
+            return res.status(400).json({ error: 'Invalid specialty' });
+        }
         const updatedDoctor = await prisma.doctor.update({
             where: { userId: doctorId },
             data: {
@@ -156,10 +199,9 @@ export const updateDoctorProfile = async (req, res) => {
                 user: true
             }
         });
-        
-        res.status(200).json({ 
-            message: 'Doctor profile updated successfully', 
-            doctor: updatedDoctor 
+        res.status(200).json({
+            message: 'Doctor profile updated successfully',
+            doctor: updatedDoctor
         });
     } catch (error) {
         console.error("Error updating doctor profile:", error);
@@ -254,6 +296,9 @@ export const getDoctorAvailability = async (req, res) => {
 export const submitDoctorApplication = async (req, res) => {
     try {
         const { name, email, phone, location, specialty, experienceYears, credentials } = req.body;
+        if (!Object.values(Speciality).includes(specialty)) {
+            return res.status(400).json({ error: 'Invalid specialty' });
+        }
         const application = await adminServiceSubmitDoctorApplication({
             name,
             email,

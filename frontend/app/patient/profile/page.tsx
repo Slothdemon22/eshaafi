@@ -258,7 +258,7 @@ const PatientProfile = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   ) : (
-                    <p className="text-gray-900">{user.name}</p>
+                    <p className="text-gray-900">{user ? user.name : ''}</p>
                   )}
                 </div>
 
@@ -276,7 +276,7 @@ const PatientProfile = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   ) : (
-                    <p className="text-gray-900">{user.email}</p>
+                    <p className="text-gray-900">{user ? user.email : ''}</p>
                   )}
                 </div>
 
@@ -285,7 +285,7 @@ const PatientProfile = () => {
                     Account Type
                   </label>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {user.role}
+                    {user ? user.role : ''}
                   </span>
                 </div>
               </div>

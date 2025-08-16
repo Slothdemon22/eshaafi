@@ -99,6 +99,17 @@ const DoctorProfile = () => {
     duration: 30
   });
 
+  const [specialities, setSpecialities] = useState<{ value: string, label: string }[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [specialtySearch, setSpecialtySearch] = useState('');
+
+  useEffect(() => {
+    fetch(buildApiUrl(API_ENDPOINTS.doctorSpecialities))
+      .then(res => res.json())
+      .then(setSpecialities);
+  }, []);
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -447,15 +458,57 @@ const DoctorProfile = () => {
                     Specialty
                   </label>
                   {isEditing ? (
-                    <input
-                      type="text"
-                      name="specialty"
-                      value={formData.specialty}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Search specialty..."
+                        value={specialtySearch}
+                        autoComplete="off"
+                        onFocus={() => setShowDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowDropdown(false), 100)}
+                        onChange={e => {
+                          setSpecialtySearch(e.target.value);
+                          setShowDropdown(true);
+                          setHighlightedIndex(0);
+                        }}
+                        onKeyDown={e => {
+                          const filtered = specialities.filter(s => s.label.toLowerCase().includes(specialtySearch.toLowerCase()));
+                          if (e.key === 'ArrowDown') {
+                            setHighlightedIndex(i => Math.min(i + 1, filtered.length - 1));
+                          } else if (e.key === 'ArrowUp') {
+                            setHighlightedIndex(i => Math.max(i - 1, 0));
+                          } else if (e.key === 'Enter' && filtered[highlightedIndex]) {
+                            setSpecialtySearch(filtered[highlightedIndex].label);
+                            setFormData(prev => ({ ...prev, specialty: filtered[highlightedIndex].value }));
+                            setShowDropdown(false);
+                          }
+                        }}
+                      />
+                      {showDropdown && (
+                        <ul className="absolute z-10 left-0 right-0 bg-white border border-gray-200 rounded shadow max-h-60 overflow-y-auto mt-1">
+                          {specialities.filter(s => s.label.toLowerCase().includes(specialtySearch.toLowerCase())).map((s, idx) => (
+                            <li
+                              key={s.value}
+                              className={`px-4 py-2 cursor-pointer hover:bg-blue-100 ${idx === highlightedIndex ? 'bg-blue-100' : ''}`}
+                              onMouseDown={() => {
+                                setSpecialtySearch(s.label);
+                                setFormData(prev => ({ ...prev, specialty: s.value }));
+                                setShowDropdown(false);
+                              }}
+                              onMouseEnter={() => setHighlightedIndex(idx)}
+                            >
+                              {s.label}
+                            </li>
+                          ))}
+                          {specialities.filter(s => s.label.toLowerCase().includes(specialtySearch.toLowerCase())).length === 0 && (
+                            <li className="px-4 py-2 text-gray-400">No results</li>
+                          )}
+                        </ul>
+                      )}
+                    </>
                   ) : (
-                    <p className="text-gray-900">{doctorProfile?.specialty || 'Not specified'}</p>
+                    <p className="text-gray-900">{specialities.find(s => s.value === doctorProfile?.specialty)?.label || 'Not specified'}</p>
                   )}
                 </div>
 

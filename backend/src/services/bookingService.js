@@ -3,8 +3,9 @@ import prisma from '../prisma.js';
 
 
 export const bookingServiceAddBooking = async (patientId, doctorId, dateTime, reason, symptoms) => {
-    console.log("Booking Service Add Booking called with:", { patientId, doctorId, dateTime, reason, symptoms });
-
+    // Check if doctor and slot are available (pseudo, implement as needed)
+    // For now, assume available
+    const status = 'BOOKED'; // Booked by default
     const booking = await prisma.booking.create({
         data: {
             patientId,
@@ -12,11 +13,9 @@ export const bookingServiceAddBooking = async (patientId, doctorId, dateTime, re
             dateTime: new Date(dateTime),
             reason: reason || null,
             symptoms: symptoms || null,
-            status: 'PENDING'
+            status
         }
     });
-    
-    console.log("Booking created:", booking);
     return booking;
 }
 
@@ -35,13 +34,16 @@ export const bookingServiceDeleteBooking = async (id) => {
 
 
 
-export const changeBookingServiceChangeStatus = async (id, status) => {
+export const changeBookingServiceChangeStatus = async (id, status, rejectionReason) => {
+    const updateData = { status };
+    if (status === 'REJECTED') {
+        updateData.rejectionReason = rejectionReason;
+    }
     const changedBooking = await prisma.booking.update({
         where: { id: Number(id) },
-        data: { status: status },
-        select: { id: true, status: true }
+        data: updateData,
+        select: { id: true, status: true, rejectionReason: true }
     });
-    console.log("Changed Appointment Status to ", changedBooking.status);
     return changedBooking;
 }
 

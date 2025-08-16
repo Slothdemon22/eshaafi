@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -25,11 +25,22 @@ const DoctorApplyPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [specialtySearch, setSpecialtySearch] = useState('');
+  const [specialities, setSpecialities] = useState<{ value: string, label: string }[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+
+  useEffect(() => {
+    fetch(buildApiUrl(API_ENDPOINTS.doctorSpecialities))
+      .then(res => res.json())
+      .then(setSpecialities);
+  }, []);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<ApplicationData>({
     resolver: zodResolver(applicationSchema),
   });
@@ -112,7 +123,54 @@ const DoctorApplyPage: React.FC = () => {
               <label className="block text-sm font-semibold text-[#1F2937] mb-3">Specialty</label>
               <div className="relative">
                 <Stethoscope className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
-                <input {...register('specialty')} className="input-field pl-12" placeholder="e.g., Cardiologist" />
+                <input
+                  type="text"
+                  className="input-field pl-12"
+                  placeholder="Type or select specialty..."
+                  value={specialtySearch}
+                  autoComplete="off"
+                  onFocus={() => setShowDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowDropdown(false), 100)}
+                  onChange={e => {
+                    setSpecialtySearch(e.target.value);
+                    setShowDropdown(true);
+                    setHighlightedIndex(0);
+                  }}
+                  onKeyDown={e => {
+                    const filtered = specialities.filter(s => s.label.toLowerCase().includes(specialtySearch.toLowerCase()));
+                    if (e.key === 'ArrowDown') {
+                      setHighlightedIndex(i => Math.min(i + 1, filtered.length - 1));
+                    } else if (e.key === 'ArrowUp') {
+                      setHighlightedIndex(i => Math.max(i - 1, 0));
+                    } else if (e.key === 'Enter' && filtered[highlightedIndex]) {
+                      setSpecialtySearch(filtered[highlightedIndex].label);
+                      setValue('specialty', filtered[highlightedIndex].value);
+                      setShowDropdown(false);
+                    }
+                  }}
+                />
+                {showDropdown && (
+                  <ul className="absolute z-10 left-0 right-0 bg-white border border-[#0E6BA8] rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1 text-base">
+                    {(specialtySearch.trim() === '' ? specialities : specialities.filter(s => s.label.toLowerCase().includes(specialtySearch.toLowerCase()))).map((s, idx) => (
+                      <li
+                        key={s.value}
+                        className={`px-4 py-2 cursor-pointer text-[#1F2937] hover:bg-[#F0F9FF] ${idx === highlightedIndex ? 'bg-[#E0F2FE] font-semibold' : ''}`}
+                        onMouseDown={() => {
+                          setSpecialtySearch(s.label);
+                          setValue('specialty', s.value);
+                          setShowDropdown(false);
+                        }}
+                        onMouseEnter={() => setHighlightedIndex(idx)}
+                      >
+                        {s.label}
+                      </li>
+                    ))}
+                    {(specialtySearch.trim() !== '' && specialities.filter(s => s.label.toLowerCase().includes(specialtySearch.toLowerCase())).length === 0) && (
+                      <li className="px-4 py-2 text-[#9CA3AF]">No results</li>
+                    )}
+                  </ul>
+                )}
+                <input type="hidden" {...register('specialty')} />
               </div>
               {errors.specialty && <p className="mt-2 text-sm text-[#DC2626]">{errors.specialty.message}</p>}
             </div>

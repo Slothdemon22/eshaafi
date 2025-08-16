@@ -3,7 +3,7 @@ import prisma from "../prisma.js";
 export const getProfileServiceDoctor= async (id) => {
     try {
         const doctorProfile = await prisma.doctor.findUnique({
-            where: { id: Number(id) },
+            where: { userId: Number(id) }, // FIX: use userId instead of id
             include: {
                 user: true
             }

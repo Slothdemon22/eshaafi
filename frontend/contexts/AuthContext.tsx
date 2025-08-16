@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { config, buildApiUrl, API_ENDPOINTS } from '@/lib/config';
+import { useRouter } from 'next/navigation';
 
 interface User {
   id: number;
@@ -36,9 +37,10 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // Configure axios defaults
-  axios.defaults.baseURL = config.apiBaseUrl;
+  axios.defaults.baseURL = config.backendUri;
   axios.defaults.withCredentials = true;
 
   useEffect(() => {
@@ -79,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Logout error:', error);
     } finally {
       setUser(null);
+      router.push('/login');
     }
   };
 

@@ -43,6 +43,7 @@ interface Appointment {
   status: 'PENDING' | 'BOOKED' | 'REJECTED' | 'COMPLETED';
   symptoms?: string;
   prescription?: Prescription;
+  rejectionReason?: string; // Add this field
 }
 
 const AppointmentsPage: React.FC = () => {
@@ -83,7 +84,8 @@ const AppointmentsPage: React.FC = () => {
           reason: apt.reason || 'No reason provided',
           status: apt.status,
           symptoms: apt.symptoms,
-          prescription: apt.prescription
+          prescription: apt.prescription,
+          rejectionReason: apt.rejectionReason // Map this field
         }));
         setAppointments(transformedAppointments);
         
@@ -463,6 +465,12 @@ const AppointmentsPage: React.FC = () => {
                     {appointment.status === 'REJECTED' && (
                       <div className="text-center">
                         <p className="text-sm text-[#DC2626] font-semibold">Rejected/Cancelled</p>
+                      </div>
+                    )}
+                    {appointment.status === 'REJECTED' && appointment.rejectionReason && (
+                      <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded">
+                        <p className="text-sm text-red-700 font-semibold">Rejection Reason:</p>
+                        <p className="text-sm text-red-700">{appointment.rejectionReason}</p>
                       </div>
                     )}
                   </div>

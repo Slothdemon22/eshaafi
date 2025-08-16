@@ -29,10 +29,32 @@ model User {
   bookings Booking[] @relation("PatientBookings")
 }
 
+enum Speciality {
+  GENERAL_DOCTOR
+  PEDIATRICS
+  CARDIOLOGY
+  DERMATOLOGY
+  NEUROLOGY
+  ORTHOPEDICS
+  OPHTHALMOLOGY
+  ENT
+  GYNECOLOGY
+  UROLOGY
+  GASTROENTEROLOGY
+  ENDOCRINOLOGY
+  ONCOLOGY
+  PSYCHIATRY
+  PULMONOLOGY
+  RHEUMATOLOGY
+  DENTIST
+  PHYSIOTHERAPIST
+  DIET_NUTRITION
+}
+
 model Doctor {
   id         Int               @id @default(autoincrement())
   location   String
-  specialty  String
+  specialty  Speciality
   userId     Int               @unique
   user       User              @relation(fields: [userId], references: [id])
   bookings   Booking[]         @relation("DoctorBookings")
@@ -68,6 +90,7 @@ model Booking {
   status    BookingStatus @default(PENDING)
   reason    String?
   symptoms  String?
+  rejectionReason String? // Added field for doctor's rejection reason
 
   doctor    Doctor        @relation("DoctorBookings", fields: [doctorId], references: [id])
   patient   User          @relation("PatientBookings", fields: [patientId], references: [id])
@@ -99,7 +122,7 @@ model DoctorApplication {
   email             String
   phone             String?
   location          String
-  specialty         String
+  specialty         Speciality
   experienceYears   Int?
   credentials       String?
   status            ApplicationStatus  @default(PENDING)

@@ -41,18 +41,18 @@ export const deleteAppointment= async (req,res)=>
 export const changeStatusAppointment = async (req, res) => {
 
  try{
-    const {id,status}= req.body;
-    const changedAppointmentStatus =await changeBookingServiceChangeStatus(id,status);
+    const {id, status, rejectionReason} = req.body;
+    if (status === 'REJECTED' && (!rejectionReason || rejectionReason.trim() === '')) {
+      return res.status(400).json({ message: 'Rejection reason is required.' });
+    }
+    const changedAppointmentStatus = await changeBookingServiceChangeStatus(id, status, rejectionReason);
     return res.status(200).json({ message: 'Appointment status changed successfully', changedAppointmentStatus });
  }
  catch (error)
  {
     console.log("Error : ",error);
     return res.status(500).json({message: "Appointment status change failed", error: error.message});
-
  }
-
-
 }
 
 export const getAllBookings = async (req, res) => {

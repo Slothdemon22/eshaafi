@@ -633,32 +633,39 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-green-600">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="w-full py-20 bg-[#F0F9FF] relative flex flex-col items-center justify-center p-0 m-0">
+        {/* Decorative background element */}
+        <div className="absolute inset-0 pointer-events-none select-none">
+          <svg width="100%" height="100%" viewBox="0 0 1440 320" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full opacity-20">
+            <path fill="#1CA7A6" fillOpacity="0.08" d="M0,160L60,170.7C120,181,240,203,360,197.3C480,192,600,160,720,133.3C840,107,960,85,1080,101.3C1200,117,1320,171,1380,197.3L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+          </svg>
+        </div>
+        <div className="relative w-full flex flex-col items-center justify-center px-4 sm:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
+            className="max-w-3xl mx-auto text-center py-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-[#0E6BA8] mb-6 leading-tight drop-shadow-sm">
               Ready to Transform Your Healthcare Experience?
             </h2>
-            <p className="text-xl text-green-100 mb-8">
-              Join thousands of patients who trust Eshaafi for their healthcare needs. Start your journey to better health today.
+            <p className="text-2xl text-[#1F2937] mb-10 font-medium">
+              Join thousands of patients who trust <span className="text-[#1CA7A6] font-bold">Eshaafi</span> for their healthcare needs. Start your journey to better health today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {!isAuthenticated ? (
                 <>
-                  <Link href="/register" className="bg-white text-green-600 hover:bg-gray-100 font-medium py-3 px-8 rounded-lg transition-colors duration-200">
+                  <Link href="/register" className="btn-primary text-lg px-10 py-4 flex items-center justify-center shadow-lg">
                     Get Started Today
                   </Link>
-                  <Link href="/login" className="border-2 border-white text-white hover:bg-white hover:text-green-600 font-medium py-3 px-8 rounded-lg transition-colors duration-200">
+                  <Link href="/login" className="btn-secondary text-lg px-10 py-4 flex items-center justify-center shadow-lg">
                     Sign In
                   </Link>
                 </>
               ) : (
-                <Link href="/book-appointment" className="bg-white text-green-600 hover:bg-gray-100 font-medium py-3 px-8 rounded-lg transition-colors duration-200">
+                <Link href="/book-appointment" className="btn-primary text-lg px-10 py-4 flex items-center justify-center shadow-lg">
                   Book Your First Appointment
                 </Link>
               )}

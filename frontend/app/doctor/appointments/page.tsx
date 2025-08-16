@@ -47,6 +47,7 @@ interface Appointment {
   symptoms?: string;
   notes?: string;
   prescription?: Prescription;
+  rejectionReason?: string; // Add this field
 }
 
 const DoctorAppointmentsPage: React.FC = () => {
@@ -65,6 +66,9 @@ const DoctorAppointmentsPage: React.FC = () => {
     notes: ''
   });
   const [editingPrescription, setEditingPrescription] = useState<Prescription | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectingAppointmentId, setRejectingAppointmentId] = useState<string | null>(null);
   const { user, isAuthenticated, isDoctor } = useAuth();
   const { addToast } = useToast();
 
@@ -98,7 +102,8 @@ const DoctorAppointmentsPage: React.FC = () => {
           status: apt.status,
           symptoms: apt.symptoms,
           notes: apt.notes,
-          prescription: apt.prescription
+          prescription: apt.prescription,
+          rejectionReason: apt.rejectionReason // Add this field
         }));
         setAppointments(transformedAppointments);
         
@@ -132,6 +137,11 @@ const DoctorAppointmentsPage: React.FC = () => {
   }, [isAuthenticated, isDoctor]);
 
   const handleStatusChange = async (appointmentId: string, newStatus: Appointment['status']) => {
+    if (newStatus === 'REJECTED') {
+      setRejectingAppointmentId(appointmentId);
+      setShowRejectModal(true);
+      return;
+    }
     try {
       const response = await fetch('http://localhost:5000/api/bookings/changeBookingStatus', {
         method: 'PUT',
@@ -163,6 +173,56 @@ const DoctorAppointmentsPage: React.FC = () => {
         type: 'success',
         title: 'Status Updated',
         message: `Appointment status has been updated to ${newStatus.toLowerCase()}.`,
+      });
+    } catch (error: any) {
+      addToast({
+        type: 'error',
+        title: 'Update Failed',
+        message: error.message || 'Failed to update appointment status. Please try again.',
+      });
+    }
+  };
+
+  const handleRejectConfirm = async () => {
+    if (!rejectReason.trim()) {
+      addToast({
+        type: 'error',
+        title: 'Rejection Reason Required',
+        message: 'Please provide a reason for rejection.',
+      });
+      return;
+    }
+    try {
+      const response = await fetch('http://localhost:5000/api/bookings/changeBookingStatus', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          id: rejectingAppointmentId,
+          status: 'REJECTED',
+          rejectionReason: rejectReason
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update appointment status');
+      }
+      const result = await response.json();
+      setAppointments(prev =>
+        prev.map(apt =>
+          apt.id === rejectingAppointmentId
+            ? { ...apt, status: 'REJECTED', rejectionReason: rejectReason }
+            : apt
+        )
+      );
+      setShowRejectModal(false);
+      setRejectReason('');
+      setRejectingAppointmentId(null);
+      addToast({
+        type: 'success',
+        title: 'Status Updated',
+        message: 'Appointment has been rejected.',
       });
     } catch (error: any) {
       addToast({
@@ -505,23 +565,6 @@ const DoctorAppointmentsPage: React.FC = () => {
                   <div className="mt-6 lg:mt-0 lg:ml-6 flex flex-col space-y-3">
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-2">
-                      {appointment.status === 'PENDING' && (
-                        <>
-                          <button
-                            onClick={() => handleStatusChange(appointment.id, 'BOOKED')}
-                            className="btn-primary text-sm"
-                          >
-                            Accept
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(appointment.id, 'REJECTED')}
-                            className="btn-danger text-sm"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      )}
-                      
                       {appointment.status === 'BOOKED' && (
                         <>
                           <button
@@ -532,9 +575,9 @@ const DoctorAppointmentsPage: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleStatusChange(appointment.id, 'REJECTED')}
-                            className="btn-secondary text-sm"
+                            className="btn-danger text-sm"
                           >
-                            Cancel
+                            Reject
                           </button>
                         </>
                       )}
@@ -573,6 +616,13 @@ const DoctorAppointmentsPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                {/* Show rejection reason if REJECTED */}
+                {appointment.status === 'REJECTED' && appointment.rejectionReason && (
+                  <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded">
+                    <p className="text-sm text-red-700 font-semibold">Rejection Reason:</p>
+                    <p className="text-sm text-red-700">{appointment.rejectionReason}</p>
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>
@@ -669,6 +719,41 @@ const DoctorAppointmentsPage: React.FC = () => {
                   className="btn-primary flex-1"
                 >
                   {editingPrescription ? 'Update' : 'Save'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Reject Modal */}
+        {showRejectModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-lg p-6 w-full max-w-md"
+            >
+              <h3 className="text-xl font-semibold mb-4">Reject Appointment</h3>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Rejection</label>
+              <textarea
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value)}
+                className="input-field w-full mb-4"
+                rows={4}
+                placeholder="Please provide a reason..."
+              />
+              <div className="flex space-x-3 mt-4">
+                <button
+                  onClick={() => { setShowRejectModal(false); setRejectReason(''); setRejectingAppointmentId(null); }}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRejectConfirm}
+                  className="btn-danger flex-1"
+                >
+                  Reject
                 </button>
               </div>
             </motion.div>

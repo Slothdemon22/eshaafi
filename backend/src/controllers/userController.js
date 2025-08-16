@@ -178,11 +178,8 @@ export const getAppointmentsUser =async (req, res) => {
   const userId = req.user.id;
   try {
     const appointments = await getAppointmentsServiceUser(userId);
-    if (!appointments || appointments.length === 0) {
-      return res.status(404).json({ message: 'No appointments found for this user' });
-    }
-    res.status(200).json({ message: 'User appointments fetched successfully', appointments })
-
+    // Always return 200 with an array, even if empty
+    res.status(200).json({ message: 'User appointments fetched successfully', appointments });
   }
   catch(error)
   {
