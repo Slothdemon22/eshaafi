@@ -116,16 +116,15 @@ const AdminUsersPage: React.FC = () => {
     return matchesFilter && matchesSearch;
   });
 
-  const handleEditUser = async (user: User) => {
+  const handleEditUser = (user: User) => {
     setEditingUser(user);
-    setIsEditing(true);
+    setIsEditing(false); // Ensure not stuck in editing state
   };
 
   const handleUpdateUser = async (updatedData: Partial<User>) => {
     if (!editingUser) return;
-
+    setIsEditing(true);
     try {
-      setIsEditing(true);
       const response = await fetch(`http://localhost:5000/api/users/users/${editingUser.id}`, {
         method: 'PUT',
         headers: {
@@ -134,7 +133,6 @@ const AdminUsersPage: React.FC = () => {
         credentials: 'include',
         body: JSON.stringify(updatedData),
       });
-
       if (response.ok) {
         const data = await response.json();
         setUsers(prev => prev.map(u => u.id === editingUser.id ? data.user : u));
@@ -143,8 +141,7 @@ const AdminUsersPage: React.FC = () => {
           title: 'User Updated',
           message: 'User has been updated successfully.',
         });
-        setEditingUser(null);
-        setIsEditing(false);
+        setEditingUser(null); // Close modal after update
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to update user');
@@ -156,7 +153,7 @@ const AdminUsersPage: React.FC = () => {
         message: error.message || 'Failed to update user. Please try again.',
       });
     } finally {
-      setIsEditing(false);
+      setIsEditing(false); // Always reset editing state
     }
   };
 

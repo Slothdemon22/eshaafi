@@ -71,11 +71,7 @@ const PublicDoctorsPage: React.FC = () => {
       addToast({
         type: "info",
         title: "Login Required",
-        message: "Please login to book an appointment.",
-        action: {
-          label: "Login",
-          onClick: () => router.push("/login"),
-        },
+        message: "Please login to book an appointment."
       });
     }
   };

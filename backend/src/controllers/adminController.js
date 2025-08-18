@@ -56,37 +56,49 @@ export const getSystemStats = async (req, res) => {
   try {
     // Get total users
     const totalUsers = await prisma.user.count();
-    
     // Get total doctors
     const totalDoctors = await prisma.doctor.count();
-    
     // Get total patients (users with PATIENT role)
     const totalPatients = await prisma.user.count({
       where: { role: 'PATIENT' }
     });
-    
     // Get total appointments
     const totalAppointments = await prisma.booking.count();
-    
     // Get pending appointments
     const pendingAppointments = await prisma.booking.count({
       where: { status: 'PENDING' }
     });
-    
     // Get completed appointments
     const completedAppointments = await prisma.booking.count({
       where: { status: 'COMPLETED' }
     });
-    
+
+    // Get recent appointments (last 10)
+    const recentAppointments = await prisma.booking.findMany({
+      orderBy: { dateTime: 'desc' },
+      take: 10,
+      include: {
+        patient: { select: { name: true } },
+        doctor: { select: { user: { select: { name: true } } } }
+      }
+    });
+
     const stats = {
       totalUsers,
       totalDoctors,
       totalPatients,
       totalAppointments,
       pendingAppointments,
-      completedAppointments
+      completedAppointments,
+      recentAppointments: recentAppointments.map(a => ({
+        id: a.id,
+        patientName: a.patient?.name || 'Unknown',
+        doctorName: a.doctor?.user?.name || 'Unknown',
+        dateTime: a.dateTime,
+        status: a.status
+      }))
     };
-    
+
     res.status(200).json(stats);
   } catch (error) {
     console.error("Error fetching system stats:", error);

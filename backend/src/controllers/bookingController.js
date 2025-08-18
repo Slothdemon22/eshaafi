@@ -5,10 +5,10 @@ export const bookAppointment = async (req, res) => {
 
  try
  {
-    const { doctorId, dateTime, reason, symptoms } = req.body;
+    const { doctorId, dateTime, reason, symptoms, type } = req.body;
     const patientId = req.user.id;
-    console.log("Booking appointment with data:", { patientId, doctorId, dateTime, reason, symptoms });
-    const booking = await bookingServiceAddBooking(patientId, doctorId, dateTime, reason, symptoms);
+    console.log("Booking appointment with data:", { patientId, doctorId, dateTime, reason, symptoms, type });
+    const booking = await bookingServiceAddBooking(patientId, doctorId, dateTime, reason, symptoms, type || 'PHYSICAL');
    // console.log("Booking created:", booking);
     res.status(201).json({ message: 'Appointment booked successfully and pending doctor approval', booking });
 

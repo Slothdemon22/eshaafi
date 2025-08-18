@@ -6,27 +6,32 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "node patch-hms-virtual-background.js"
   },
   "dependencies": {
+    "@100mslive/hms-video-react": "^0.7.4",
+    "@100mslive/react-sdk": "^0.10.37",
+    "@100mslive/roomkit-react": "^0.3.37",
     "@headlessui/react": "^2.2.7",
     "@hookform/resolvers": "^5.2.1",
+    "@mediapipe/selfie_segmentation": "0.1.1675465747",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.539.0",
     "next": "15.4.6",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "react-hook-form": "^7.62.0",
     "tailwind-merge": "^3.3.1",
     "zod": "^4.0.17"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^3.4.0",
     "typescript": "^5"

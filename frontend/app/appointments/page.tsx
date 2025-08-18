@@ -23,6 +23,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toaster';
 import Link from 'next/link';
 import { buildApiUrl, API_ENDPOINTS } from '@/lib/config';
+import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
+
+const VideoCall = dynamic(() => import('@/components/VideoCall'), { ssr: false });
 
 interface Prescription {
   id: number;
@@ -44,6 +48,8 @@ interface Appointment {
   symptoms?: string;
   prescription?: Prescription;
   rejectionReason?: string; // Add this field
+  type?: string;
+  videoRoomId?: string;
 }
 
 const AppointmentsPage: React.FC = () => {
@@ -54,6 +60,7 @@ const AppointmentsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { user, isAuthenticated } = useAuth();
   const { addToast } = useToast();
+  const router = useRouter();
 
   // Fetch appointments from API
   const fetchAppointments = async (isRefresh = false) => {
@@ -85,7 +92,9 @@ const AppointmentsPage: React.FC = () => {
           status: apt.status,
           symptoms: apt.symptoms,
           prescription: apt.prescription,
-          rejectionReason: apt.rejectionReason // Map this field
+          rejectionReason: apt.rejectionReason, // Map this field
+          type: apt.type, // Add type field
+          videoRoomId: apt.videoRoomId // Add videoRoomId field
         }));
         setAppointments(transformedAppointments);
         
@@ -152,6 +161,19 @@ const AppointmentsPage: React.FC = () => {
     }
   };
 
+  const handleJoinVideoCall = async (appointment: Appointment) => {
+    try {
+      // Fetch video info
+      const infoRes = await fetch(buildApiUrl(API_ENDPOINTS.videoInfo(appointment.id)), { credentials: 'include' });
+      if (!infoRes.ok) throw new Error('Failed to get video info');
+      const info = await infoRes.json();
+      // Open video call page in a new tab
+      window.open(`/appointments/videocall?roomCode=${encodeURIComponent(info.roomCode)}`, '_blank');
+    } catch (err) {
+      addToast({ type: 'error', title: 'Video Call Error', message: 'Could not join video call.' });
+    }
+  };
+
   const getStatusColor = (status: Appointment['status']) => {
     switch (status) {
       case 'PENDING':
@@ -195,6 +217,10 @@ const AppointmentsPage: React.FC = () => {
       default:
         return '';
     }
+  };
+
+  const isVirtualAndActive = (appointment: Appointment) => {
+    return appointment.type === 'VIRTUAL' && appointment.status === 'BOOKED';
   };
 
   const filteredAppointments = appointments.filter(appointment => {
@@ -472,6 +498,14 @@ const AppointmentsPage: React.FC = () => {
                         <p className="text-sm text-red-700 font-semibold">Rejection Reason:</p>
                         <p className="text-sm text-red-700">{appointment.rejectionReason}</p>
                       </div>
+                    )}
+                    {isVirtualAndActive(appointment) && (
+                      <button
+                        className="btn-primary"
+                        onClick={() => handleJoinVideoCall(appointment)}
+                      >
+                        Join Video Call
+                      </button>
                     )}
                   </div>
                 </div>

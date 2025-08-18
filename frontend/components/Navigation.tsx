@@ -29,7 +29,10 @@ const Navigation: React.FC = () => {
 
   const navItems = [
     { href: '/', label: 'Home', icon: Home },
-    { href: '/doctors', label: 'Doctors', icon: Stethoscope },
+    // Only show 'Doctors' if not authenticated or isPatient
+    ...((!isAuthenticated || isPatient) ? [
+      { href: '/doctors', label: 'Doctors', icon: Stethoscope },
+    ] : []),
     ...(isAuthenticated && isPatient ? [
       { href: '/appointments', label: 'My Appointments', icon: Calendar },
       { href: '/book-appointment', label: 'Book Appointment', icon: Calendar },

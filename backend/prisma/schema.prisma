@@ -83,6 +83,11 @@ enum BookingStatus {
   COMPLETED
 }
 
+enum AppointmentType {
+  VIRTUAL
+  PHYSICAL
+}
+
 model Booking {
   id        Int           @id @default(autoincrement())
   dateTime  DateTime
@@ -92,6 +97,8 @@ model Booking {
   reason    String?
   symptoms  String?
   rejectionReason String? // Added field for doctor's rejection reason
+  type      AppointmentType @default(PHYSICAL)
+  videoRoomId String? // 100ms room ID for virtual appointments
 
   doctor    Doctor        @relation("DoctorBookings", fields: [doctorId], references: [id])
   patient   User          @relation("PatientBookings", fields: [patientId], references: [id])

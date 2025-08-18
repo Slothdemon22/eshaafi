@@ -46,6 +46,7 @@ const appointmentSchema = z.object({
   time: z.string().min(1, 'Please select a time'),
   reason: z.string().min(10, 'Please provide a detailed reason (at least 10 characters)'),
   symptoms: z.string().optional(),
+  type: z.enum(['PHYSICAL', 'VIRTUAL']),
 });
 
 type AppointmentFormData = z.infer<typeof appointmentSchema>;
@@ -68,10 +69,12 @@ const BookAppointmentPage: React.FC = () => {
     formState: { errors },
   } = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
+    defaultValues: { type: 'PHYSICAL' },
   });
 
   const selectedDate = watch('date');
   const selectedTime = watch('time');
+  const selectedType = watch('type');
 
   // Fetch doctors from API
   useEffect(() => {
@@ -164,7 +167,8 @@ const BookAppointmentPage: React.FC = () => {
         doctorId: parseInt(data.doctorId),
         dateTime: `${data.date}T${data.time}:00`,
         reason: data.reason,
-        symptoms: data.symptoms || ''
+        symptoms: data.symptoms || '',
+        type: data.type,
       };
 
       console.log('Submitting booking data:', bookingData);
@@ -374,6 +378,45 @@ const BookAppointmentPage: React.FC = () => {
                   </motion.p>
                 )}
               </div>
+            </div>
+
+            {/* Appointment Type Selection */}
+            <div>
+              <label className="block text-lg font-semibold text-[#1F2937] mb-4">
+                Appointment Type
+              </label>
+              <div className="flex gap-6 mb-2">
+                <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border-2 transition-all duration-200 ${selectedType === 'PHYSICAL' ? 'border-[#0E6BA8] bg-[#F0F9FF]' : 'border-gray-200 hover:border-[#0E6BA8]/50'}`}>
+                  <input
+                    type="radio"
+                    value="PHYSICAL"
+                    {...register('type')}
+                    checked={selectedType === 'PHYSICAL'}
+                    className="form-radio accent-[#0E6BA8]"
+                  />
+                  <span className="font-medium text-[#1F2937]">Physical</span>
+                </label>
+                <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border-2 transition-all duration-200 ${selectedType === 'VIRTUAL' ? 'border-[#1CA7A6] bg-[#E0F2FE]' : 'border-gray-200 hover:border-[#1CA7A6]/50'}`}>
+                  <input
+                    type="radio"
+                    value="VIRTUAL"
+                    {...register('type')}
+                    checked={selectedType === 'VIRTUAL'}
+                    className="form-radio accent-[#1CA7A6]"
+                  />
+                  <span className="font-medium text-[#1F2937]">Virtual</span>
+                </label>
+              </div>
+              <p className="text-xs text-[#4B5563]">Choose whether you want to visit the doctor in person or have a virtual (online) appointment.</p>
+              {errors.type && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-2 text-sm text-[#DC2626]"
+                >
+                  {errors.type.message}
+                </motion.p>
+              )}
             </div>
 
             {/* Reason and Symptoms */}

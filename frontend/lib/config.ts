@@ -44,6 +44,10 @@ export const API_ENDPOINTS = {
   adminApplications: '/api/admin/applications',
   approveApplication: (id: string) => `/api/admin/applications/${id}/approve`,
   rejectApplication: (id: string) => `/api/admin/applications/${id}/reject`,
+  
+  // Video call endpoints
+  videoInfo: (bookingId: string) => `/api/bookings/video/info/${bookingId}`,
+  videoToken: '/api/bookings/video/token',
 } as const;
 
 // Helper function to build full API URLs
