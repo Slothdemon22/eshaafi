@@ -1,5 +1,5 @@
 import express from "express";
-import { getProfileDoctor, addAvailabilityDoctor, updateDoctorProfile, getDoctorAppointments, getDoctorAvailability, deleteAvailabilitySlot, submitDoctorApplication, getDoctorAvailabilityWithBookingsController, getAllDoctorsForBooking, addMultipleAvailabilitySlots, getSpecialities, getDoctorCountsBySpeciality } from '../controllers/doctorController.js';
+import { getProfileDoctor, addAvailabilityDoctor, updateDoctorProfile, getDoctorAppointments, getDoctorAvailability, deleteAvailabilitySlot, submitDoctorApplication, getDoctorAvailabilityWithBookingsController, getAllDoctorsForBooking, addMultipleAvailabilitySlots, getSpecialities, getDoctorCountsBySpeciality, setDoctorOnlineStatus, getDoctorOnlineStatus } from '../controllers/doctorController.js';
 import { doctorMiddleware } from '../middlewares/doctorMiddleware.js';
 
 const doctorRouter=express.Router();
@@ -19,5 +19,11 @@ doctorRouter.post("/addAvailability", doctorMiddleware, addAvailabilityDoctor);
 doctorRouter.delete("/availability/:slotId", doctorMiddleware, deleteAvailabilitySlot);
 doctorRouter.post("/availability/slots", doctorMiddleware, addMultipleAvailabilitySlots);
 doctorRouter.get("/availability/bookings", getDoctorAvailabilityWithBookingsController);
+
+// Online status endpoints
+// Set status (doctor only)
+doctorRouter.post('/status', doctorMiddleware, setDoctorOnlineStatus);
+// Get status (public)
+doctorRouter.get('/status/:doctorId', getDoctorOnlineStatus);
 
 export default doctorRouter;

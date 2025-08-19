@@ -87,7 +87,32 @@ export const getAppointmentsServiceUser = async (userId) => {
     }
   });
   
-  console.log("Appointments fetched for user:", appointments);
+  // For each appointment, fetch the corresponding slot to get duration
+  const appointmentsWithDuration = await Promise.all(
+    appointments.map(async (apt) => {
+      // Extract date, startTime from booking
+      const date = apt.dateTime;
+      const doctorId = apt.doctorId;
+      // Get time string in HH:mm format
+      const startTime = new Date(date).toTimeString().slice(0,5);
+      // Find the slot for this doctor, date, and startTime
+      const slot = await prisma.availabilitySlot.findFirst({
+        where: {
+          doctorId: doctorId,
+          date: {
+            equals: new Date(date.toISOString().split('T')[0])
+          },
+          startTime: startTime
+        }
+      });
+      return {
+        ...apt,
+        slotDuration: slot ? slot.duration : null
+      };
+    })
+  );
   
-  return appointments;
+  console.log("Appointments fetched for user (with duration):", appointmentsWithDuration);
+  
+  return appointmentsWithDuration;
 }

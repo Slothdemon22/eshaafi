@@ -15,7 +15,7 @@ export const getProfileServiceDoctor= async (id) => {
     }
 };
 
-export const addAvailabilityService = async (doctorId, date, startTime, endTime, duration, location) => {
+export const addAvailabilityService = async (doctorId, date, startTime, endTime, duration, location, custom = false) => {
     try {
         const availability = await prisma.availabilitySlot.create({
             data: {
@@ -24,7 +24,8 @@ export const addAvailabilityService = async (doctorId, date, startTime, endTime,
                 startTime: startTime,
                 endTime: endTime,
                 duration: duration,
-                location: location || null
+                location: location || null,
+                custom: custom
             },
         });
         return availability;
@@ -69,7 +70,6 @@ export const getDoctorAvailabilityWithBookings = async (doctorId, date) => {
                 const bookingTimeString = bookingTime.toTimeString().slice(0, 5);
                 return bookingTimeString === slot.startTime;
             });
-            
             return {
                 id: slot.id,
                 startTime: slot.startTime,
@@ -77,7 +77,8 @@ export const getDoctorAvailabilityWithBookings = async (doctorId, date) => {
                 duration: slot.duration,
                 isBooked,
                 date: slot.date,
-                location: slot.location || null
+                location: slot.location || null,
+                custom: slot.custom // include custom flag
             };
         });
 
