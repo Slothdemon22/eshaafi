@@ -23,6 +23,8 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toaster';
 import Link from 'next/link';
+import { formatTimeAMPM } from '@/lib/config';
+import { buildApiUrl } from '@/lib/config';
 
 interface Appointment {
   id: string;
@@ -57,6 +59,8 @@ const DoctorDashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'>('all');
+  const [online, setOnline] = useState<boolean | null>(null);
+  const [isStatusLoading, setIsStatusLoading] = useState(false);
   const { user, isAuthenticated, isDoctor } = useAuth();
   const { addToast } = useToast();
 
@@ -137,6 +141,16 @@ const DoctorDashboardPage: React.FC = () => {
     }
   }, [isAuthenticated, isDoctor]);
 
+  // Fetch online status on mount
+  useEffect(() => {
+    if (user && isDoctor) {
+      fetch(buildApiUrl(`/api/doctor/status/${user.id}`))
+        .then(res => res.json())
+        .then(data => setOnline(data.online))
+        .catch(() => setOnline(null));
+    }
+  }, [user, isDoctor]);
+
   const handleStatusChange = async (appointmentId: string, newStatus: Appointment['status']) => {
     try {
       // API call to change appointment status
@@ -174,6 +188,30 @@ const DoctorDashboardPage: React.FC = () => {
         title: 'Update Failed',
         message: error.message || 'Failed to update appointment status. Please try again.',
       });
+    }
+  };
+
+  const handleToggleOnline = async () => {
+    if (online === null) return;
+    setIsStatusLoading(true);
+    try {
+      const res = await fetch(buildApiUrl('/api/doctor/status'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ online: !online })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOnline(data.online);
+        addToast({ type: 'success', title: 'Status Updated', message: `You are now ${data.online ? 'Online' : 'Offline'}` });
+      } else {
+        throw new Error('Failed to update status');
+      }
+    } catch {
+      addToast({ type: 'error', title: 'Error', message: 'Could not update status' });
+    } finally {
+      setIsStatusLoading(false);
     }
   };
 
@@ -238,13 +276,30 @@ const DoctorDashboardPage: React.FC = () => {
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Home</span>
           </Link>
-          
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            Doctor Dashboard
-          </h1>
-          <p className="text-xl text-gray-600">
-            Welcome back, Dr. {user?.name}. Here's your practice overview.
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                Doctor Dashboard
+              </h1>
+              <p className="text-xl text-gray-600">
+                Welcome back, Dr. {user?.name}. Here's your practice overview.
+              </p>
+            </div>
+            {/* Online/Offline Status Display (right of title) */}
+            <div className={`flex items-center gap-3 px-4 py-2 rounded-lg border shadow-sm ${online ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+              <span className={`flex items-center justify-center w-7 h-7 rounded-full ${online ? 'bg-green-500' : 'bg-red-500'}`}>
+                {online ? <CheckCircle className="w-5 h-5 text-white" /> : <XCircle className="w-5 h-5 text-white" />}
+              </span>
+              <span className={`text-lg font-semibold ${online ? 'text-green-700' : 'text-red-700'}`}>{online ? 'Online' : 'Offline'}</span>
+              <button
+                onClick={handleToggleOnline}
+                disabled={isStatusLoading}
+                className={`ml-2 px-3 py-1 rounded font-medium border text-base shadow transition-colors ${online ? 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200'}`}
+              >
+                {online ? 'Go Offline' : 'Go Online'}
+              </button>
+            </div>
+          </div>
         </motion.div>
 
         {/* Stats Cards */}
@@ -436,7 +491,7 @@ const DoctorDashboardPage: React.FC = () => {
                         </div>
                         <div className="flex items-center space-x-2">
                           <Clock className="w-4 h-4 text-green-600" />
-                          <span className="text-sm text-gray-600">{appointment.time}</span>
+                          <span className="text-sm text-gray-600">{appointment.time && formatTimeAMPM(appointment.time)}</span>
                         </div>
                       </div>
                       

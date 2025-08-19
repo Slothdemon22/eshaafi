@@ -15,6 +15,7 @@ interface Doctor {
   specialty: string;
   location: string;
   availability?: any[];
+  online?: boolean;
 }
 
 interface Speciality {
@@ -62,6 +63,28 @@ const PublicDoctorsPage: React.FC = () => {
     }
     setFilteredDoctors(filtered);
   }, [doctors, search, selectedSpeciality]);
+
+  // Poll online status for all doctors
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    const fetchStatuses = async () => {
+      if (doctors.length === 0) return;
+      const updated = await Promise.all(doctors.map(async (doc) => {
+        try {
+          const res = await fetch(buildApiUrl(`/api/doctor/status/${doc.id}`));
+          if (res.ok) {
+            const data = await res.json();
+            return { ...doc, online: data.online };
+          }
+        } catch {}
+        return { ...doc, online: false };
+      }));
+      setDoctors(updated);
+    };
+    fetchStatuses();
+    interval = setInterval(fetchStatuses, 5000);
+    return () => clearInterval(interval);
+  }, [doctors.length]);
 
   const handleBook = (doctor: Doctor) => {
     if (isAuthenticated) {
@@ -196,6 +219,13 @@ const PublicDoctorsPage: React.FC = () => {
                   <div className="flex items-center gap-3 mb-2">
                     <Stethoscope className="w-6 h-6 text-[#1CA7A6]" />
                     <h2 className="text-xl font-semibold text-[#0E6BA8]">{doctor.name}</h2>
+                    {/* Doctor Online/Offline Status */}
+                    <span className={`flex items-center gap-1 font-medium ${doctor.online ? 'text-green-600' : 'text-red-600'}`}>
+                      <svg width="10" height="10" className="inline-block" style={{ marginRight: 4 }}>
+                        <circle cx="5" cy="5" r="5" fill={doctor.online ? '#16a34a' : '#dc2626'} />
+                      </svg>
+                      {doctor.online ? 'Online' : 'Offline'}
+                    </span>
                   </div>
                   <div className="text-gray-700 mb-1 font-medium">
                     {specialities.find(s => s.value === doctor.specialty)?.label || doctor.specialty}

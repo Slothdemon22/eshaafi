@@ -55,3 +55,9 @@ export const buildApiUrl = (endpoint: string): string => {
   // Always use backendUri directly for backend API calls
   return `${config.backendUri}${endpoint}`;
 };
+
+// Utility: Format time as AM/PM
+export function formatTimeAMPM(time: string | Date): string {
+  const date = typeof time === 'string' ? new Date(`1970-01-01T${time}`) : time;
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+}

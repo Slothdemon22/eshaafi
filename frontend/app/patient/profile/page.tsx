@@ -20,6 +20,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
+import { formatTimeAMPM } from '@/lib/config';
 
 interface Appointment {
   id: number;
@@ -445,7 +446,11 @@ const PatientProfile = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center text-gray-600">
                           <Calendar className="w-4 h-4 mr-2" />
-                          {formatDateTime(appointment.dateTime)}
+                          {new Date(appointment.dateTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+                        <div className="flex items-center text-gray-600">
+                          <Clock className="w-4 h-4 mr-2" />
+                          {formatTimeAMPM(new Date(appointment.dateTime))}
                         </div>
                         <div className="flex items-center text-gray-600">
                           <MapPin className="w-4 h-4 mr-2" />

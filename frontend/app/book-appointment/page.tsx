@@ -30,6 +30,7 @@ interface Doctor {
   experience?: number;
   location?: string;
   availability?: any;
+  online?: boolean;
 }
 
 interface AvailabilitySlot {
@@ -38,6 +39,8 @@ interface AvailabilitySlot {
   endTime: string;
   isBooked: boolean;
   location?: string;
+  duration?: number; // Add duration for filtering
+  custom?: boolean; // Add custom flag
 }
 
 const appointmentSchema = z.object({
@@ -57,6 +60,8 @@ const BookAppointmentPage: React.FC = () => {
   const [availableSlots, setAvailableSlots] = useState<AvailabilitySlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [slotDurationFilter, setSlotDurationFilter] = useState<'all' | 'half' | 'full'>('all');
+  const [slotTypeFilter, setSlotTypeFilter] = useState<'all' | 'custom' | 'half' | 'full'>('all');
   const { isAuthenticated } = useAuth();
   const { addToast } = useToast();
   const router = useRouter();
@@ -108,6 +113,28 @@ const BookAppointmentPage: React.FC = () => {
       fetchDoctors();
     }
   }, [isAuthenticated, addToast]);
+
+  // Poll online status for all doctors
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    const fetchStatuses = async () => {
+      if (doctors.length === 0) return;
+      const updated = await Promise.all(doctors.map(async (doc) => {
+        try {
+          const res = await fetch(buildApiUrl(`/api/doctor/status/${doc.id}`));
+          if (res.ok) {
+            const data = await res.json();
+            return { ...doc, online: data.online };
+          }
+        } catch {}
+        return { ...doc, online: false };
+      }));
+      setDoctors(updated);
+    };
+    fetchStatuses();
+    interval = setInterval(fetchStatuses, 5000);
+    return () => clearInterval(interval);
+  }, [doctors.length]);
 
   // Fetch available slots when doctor and date are selected
   useEffect(() => {
@@ -276,7 +303,13 @@ const BookAppointmentPage: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="font-semibold text-[#1F2937]">{doctor.name}</h3>
-                        <p className="text-sm text-[#4B5563]">{doctor.specialty}</p>
+                        {/* Doctor Online/Offline Status */}
+                        <span className={`flex items-center gap-1 font-medium ${doctor.online ? 'text-green-600' : 'text-red-600'}`}>
+                          <svg width="10" height="10" className="inline-block" style={{ marginRight: 4 }}>
+                            <circle cx="5" cy="5" r="5" fill={doctor.online ? '#16a34a' : '#dc2626'} />
+                          </svg>
+                          {doctor.online ? 'Online' : 'Offline'}
+                        </span>
                       </div>
                     </div>
                     <div className="text-sm text-[#4B5563] space-y-1">
@@ -328,6 +361,19 @@ const BookAppointmentPage: React.FC = () => {
                   <Clock className="inline w-5 h-5 mr-2" />
                   Select Time
                 </label>
+                {/* Slot Type Filter */}
+                <div className="mb-4">
+                  <select
+                    value={slotTypeFilter}
+                    onChange={e => setSlotTypeFilter(e.target.value as any)}
+                    className="input-field w-auto"
+                  >
+                    <option value="all">All Durations</option>
+                    <option value="custom">Custom</option>
+                    <option value="half">Half Hour</option>
+                    <option value="full">Full Hour</option>
+                  </select>
+                </div>
                 {isLoadingSlots ? (
                   <div className="flex items-center justify-center p-4 border border-gray-200 rounded-lg">
                     <Loader2 className="w-5 h-5 animate-spin text-[#0E6BA8] mr-2" />
@@ -335,29 +381,39 @@ const BookAppointmentPage: React.FC = () => {
                   </div>
                 ) : availableSlots.length > 0 ? (
                   <div className="grid grid-cols-3 gap-2">
-                    {availableSlots.map((slot) => (
-                      <motion.button
-                        key={slot.id}
-                        type="button"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleSlotSelect(slot)}
-                        disabled={slot.isBooked}
-                        className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 ${slot.isBooked
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : selectedTime === slot.startTime
-                              ? 'bg-[#0E6BA8] text-white shadow-elevated'
-                              : 'bg-white border border-gray-200 text-[#1F2937] hover:border-[#0E6BA8] hover:shadow-professional'
-                          }`}
-                      >
-                        <div>{slot.startTime}</div>
-                        {slot.location && (
-                          <div className="text-xs mt-1 text-[#1CA7A6] font-medium truncate" title={slot.location}>
-                            {slot.location}
+                    {availableSlots
+                      .filter(slot =>
+                        slotTypeFilter === 'all' ? true :
+                        slotTypeFilter === 'custom' ? slot.custom :
+                        slotTypeFilter === 'half' ? slot.duration === 30 && !slot.custom :
+                        slotTypeFilter === 'full' ? slot.duration === 60 && !slot.custom : true
+                      )
+                      .map((slot) => (
+                        <motion.button
+                          key={slot.id}
+                          type="button"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleSlotSelect(slot)}
+                          disabled={slot.isBooked}
+                          className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 ${slot.isBooked
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : selectedTime === slot.startTime
+                                ? 'bg-[#0E6BA8] text-white shadow-elevated'
+                                : 'bg-white border border-gray-200 text-[#1F2937] hover:border-[#0E6BA8] hover:shadow-professional'
+                            }`}
+                        >
+                          <div>
+                            {new Date(`1970-01-01T${slot.startTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            {slot.custom && <span className="ml-2 px-2 py-0.5 rounded bg-yellow-100 text-yellow-800 text-xs font-semibold">Custom</span>}
                           </div>
-                        )}
-                      </motion.button>
-                    ))}
+                          {slot.location && (
+                            <div className="text-xs mt-1 text-[#1CA7A6] font-medium truncate" title={slot.location}>
+                              {slot.location}
+                            </div>
+                          )}
+                        </motion.button>
+                      ))}
                   </div>
                 ) : selectedDoctor && selectedDate ? (
                   <div className="p-4 border border-gray-200 rounded-lg text-center">

@@ -28,7 +28,7 @@ const Navigation: React.FC = () => {
   };
 
   const navItems = [
-    { href: '/', label: 'Home', icon: Home },
+    
     // Only show 'Doctors' if not authenticated or isPatient
     ...((!isAuthenticated || isPatient) ? [
       { href: '/doctors', label: 'Doctors', icon: Stethoscope },

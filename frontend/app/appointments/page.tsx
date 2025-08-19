@@ -22,7 +22,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toaster';
 import Link from 'next/link';
-import { buildApiUrl, API_ENDPOINTS } from '@/lib/config';
+import { buildApiUrl, API_ENDPOINTS, formatTimeAMPM } from '@/lib/config';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 
@@ -50,6 +50,7 @@ interface Appointment {
   rejectionReason?: string; // Add this field
   type?: string;
   videoRoomId?: string;
+  slotDuration?: number; // 30 or 60
 }
 
 const AppointmentsPage: React.FC = () => {
@@ -58,6 +59,7 @@ const AppointmentsPage: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'PENDING' | 'BOOKED' | 'REJECTED' | 'COMPLETED'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [durationFilter, setDurationFilter] = useState<'all' | 'half' | 'full'>('all');
   const { user, isAuthenticated } = useAuth();
   const { addToast } = useToast();
   const router = useRouter();
@@ -94,7 +96,8 @@ const AppointmentsPage: React.FC = () => {
           prescription: apt.prescription,
           rejectionReason: apt.rejectionReason, // Map this field
           type: apt.type, // Add type field
-          videoRoomId: apt.videoRoomId // Add videoRoomId field
+          videoRoomId: apt.videoRoomId, // Add videoRoomId field
+          slotDuration: apt.slotDuration // <-- new
         }));
         setAppointments(transformedAppointments);
         
@@ -227,7 +230,11 @@ const AppointmentsPage: React.FC = () => {
     const matchesFilter = filter === 'all' || appointment.status === filter;
     const matchesSearch = appointment.doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          appointment.reason.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
+    const matchesDuration =
+      durationFilter === 'all' ? true :
+      durationFilter === 'half' ? appointment.slotDuration === 30 :
+      durationFilter === 'full' ? appointment.slotDuration === 60 : true;
+    return matchesFilter && matchesSearch && matchesDuration;
   });
 
   if (!isAuthenticated) {
@@ -299,6 +306,16 @@ const AppointmentsPage: React.FC = () => {
                 <option value="BOOKED">Booked</option>
                 <option value="COMPLETED">Completed</option>
                 <option value="REJECTED">Rejected</option>
+              </select>
+              {/* Duration Filter */}
+              <select
+                value={durationFilter}
+                onChange={e => setDurationFilter(e.target.value as any)}
+                className="input-field w-auto"
+              >
+                <option value="all">All Durations</option>
+                <option value="half">Half Hour</option>
+                <option value="full">Full Hour</option>
               </select>
               <button
                 onClick={() => fetchAppointments(true)}
@@ -404,7 +421,9 @@ const AppointmentsPage: React.FC = () => {
                         </div>
                         <div>
                           <p className="text-sm text-[#4B5563] font-medium">Time</p>
-                          <p className="font-semibold text-[#1F2937] text-lg">{appointment.time}</p>
+                          <p className="font-semibold text-[#1F2937] text-lg">
+                            {appointment.time && formatTimeAMPM(appointment.time)}
+                          </p>
                         </div>
                       </div>
                     </div>

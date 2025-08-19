@@ -24,7 +24,7 @@ import {
   Trash2,
   Users
 } from 'lucide-react';
-import { buildApiUrl, API_ENDPOINTS } from '@/lib/config';
+import { buildApiUrl, API_ENDPOINTS, formatTimeAMPM } from '@/lib/config';
 
 interface DoctorProfile {
   id: number;
@@ -779,7 +779,7 @@ const DoctorProfile = () => {
                       <div>
                         <p className="font-medium text-gray-900">{formatDate(slot.date)}</p>
                         <p className="text-sm text-gray-600">
-                          {formatTime(slot.startTime)} - {formatTime(slot.endTime)} ({slot.duration} min)
+                          {formatTimeAMPM(slot.startTime)} - {formatTimeAMPM(slot.endTime)} ({slot.duration} min)
                         </p>
                       </div>
                       <button
@@ -837,7 +837,11 @@ const DoctorProfile = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center text-gray-600">
                           <Calendar className="w-4 h-4 mr-2" />
-                          {formatDateTime(appointment.dateTime)}
+                          {new Date(appointment.dateTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+                        <div className="flex items-center text-gray-600">
+                          <Clock className="w-4 h-4 mr-2" />
+                          {formatTimeAMPM(new Date(appointment.dateTime))}
                         </div>
                       </div>
                       

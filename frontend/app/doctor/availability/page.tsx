@@ -23,6 +23,7 @@ interface TimeSlot {
   duration: number;
   isSelected: boolean;
   location?: string;
+  custom?: boolean;
 }
 
 const DoctorAvailabilityPage: React.FC = () => {
@@ -32,6 +33,14 @@ const DoctorAvailabilityPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const { user, isAuthenticated, isDoctor } = useAuth();
   const { addToast } = useToast();
+
+  const [customSlot, setCustomSlot] = useState({
+    startTime: '',
+    endTime: '',
+    location: '',
+  });
+  const [isAddingCustom, setIsAddingCustom] = useState(false);
+  const [slotTypeFilter, setSlotTypeFilter] = useState<'all' | 'custom' | 'half' | 'full'>('all');
 
   // Generate time slots for 30-minute and 1-hour intervals
   const generateTimeSlots = () => {
@@ -191,6 +200,53 @@ const DoctorAvailabilityPage: React.FC = () => {
     generateTimeSlots(); // Generate fresh slots for new date
   };
 
+  // Add custom slot handler
+  const handleAddCustomSlot = async () => {
+    if (!selectedDate || !customSlot.startTime || !customSlot.endTime) {
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Please fill all custom slot fields',
+      });
+      return;
+    }
+    // Calculate duration in minutes
+    const [sh, sm] = customSlot.startTime.split(':').map(Number);
+    const [eh, em] = customSlot.endTime.split(':').map(Number);
+    const duration = (eh * 60 + em) - (sh * 60 + sm);
+    if (duration <= 0) {
+      addToast({ type: 'error', title: 'Error', message: 'End time must be after start time' });
+      return;
+    }
+    try {
+      setIsAddingCustom(true);
+      const response = await fetch('http://localhost:5000/api/doctor/addAvailability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          date: selectedDate,
+          startTime: customSlot.startTime,
+          endTime: customSlot.endTime,
+          duration,
+          location: customSlot.location,
+          custom: true
+        })
+      });
+      if (response.ok) {
+        addToast({ type: 'success', title: 'Success', message: 'Custom slot added' });
+        setCustomSlot({ startTime: '', endTime: '', location: '' });
+        loadAvailability();
+      } else {
+        throw new Error('Failed to add custom slot');
+      }
+    } catch (error) {
+      addToast({ type: 'error', title: 'Error', message: 'Failed to add custom slot' });
+    } finally {
+      setIsAddingCustom(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedDate) {
       loadAvailability();
@@ -258,6 +314,61 @@ const DoctorAvailabilityPage: React.FC = () => {
             />
           </div>
 
+          {/* Custom Slot Form */}
+          {selectedDate && (
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Custom Slot</h3>
+              <div className="flex flex-col md:flex-row gap-2 items-center w-full">
+                <input
+                  type="time"
+                  value={customSlot.startTime}
+                  onChange={e => setCustomSlot(s => ({ ...s, startTime: e.target.value }))}
+                  className="input-field w-full md:w-32"
+                  placeholder="Start Time"
+                />
+                <span>to</span>
+                <input
+                  type="time"
+                  value={customSlot.endTime}
+                  onChange={e => setCustomSlot(s => ({ ...s, endTime: e.target.value }))}
+                  className="input-field w-full md:w-32"
+                  placeholder="End Time"
+                />
+                <input
+                  type="text"
+                  value={customSlot.location}
+                  onChange={e => setCustomSlot(s => ({ ...s, location: e.target.value }))}
+                  className="input-field w-full md:w-48"
+                  placeholder="Location (optional)"
+                />
+                <button
+                  onClick={handleAddCustomSlot}
+                  disabled={isAddingCustom}
+                  className="btn-primary px-4 py-2 w-full md:w-auto"
+                >
+                  {isAddingCustom ? 'Adding...' : 'Add Custom Slot'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Slot Type Filter */}
+          {selectedDate && (
+            <div className="mb-4 flex flex-col md:flex-row gap-2 items-center">
+              <label className="font-medium text-gray-700">Show:</label>
+              <select
+                value={slotTypeFilter}
+                onChange={e => setSlotTypeFilter(e.target.value as any)}
+                className="input-field w-full md:w-auto"
+              >
+                <option value="all">All Slots</option>
+                <option value="custom">Custom</option>
+                <option value="half">Half Hour</option>
+                <option value="full">Full Hour</option>
+              </select>
+            </div>
+          )}
+
           {selectedDate && (
             <>
               {/* Time Slots */}
@@ -273,40 +384,47 @@ const DoctorAvailabilityPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {timeSlots.map((slot, index) => (
-                      <div key={`${slot.startTime}-${slot.endTime}`} className="flex flex-col gap-2">
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleSlotClick(index)}
-                          className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-                            slot.isSelected
-                              ? 'bg-green-500 border-green-500 text-white shadow-lg'
-                              : 'bg-white border-gray-200 text-gray-700 hover:border-green-300 hover:bg-green-50'
-                          }`}
-                        >
-                          <div className="text-center">
-                            <div className="font-semibold text-sm">{slot.startTime}</div>
-                            <div className="text-xs opacity-75">to</div>
-                            <div className="font-semibold text-sm">{slot.endTime}</div>
-                            <div className="text-xs mt-1">({slot.duration} min)</div>
-                          </div>
-                        </motion.button>
-                        {slot.isSelected && (
-                          <input
-                            type="text"
-                            placeholder="Location (e.g. Clinic Room 1)"
-                            value={slot.location || ''}
-                            onChange={e => {
-                              const value = e.target.value;
-                              setTimeSlots(prev => prev.map((s, i) => i === index ? { ...s, location: value } : s));
-                            }}
-                            className="input-field w-full text-xs mt-1"
-                          />
-                        )}
-                      </div>
-                    ))}
+                    {timeSlots
+                      .filter(slot =>
+                        slotTypeFilter === 'all' ? true :
+                        slotTypeFilter === 'custom' ? slot.custom :
+                        slotTypeFilter === 'half' ? slot.duration === 30 && !slot.custom :
+                        slotTypeFilter === 'full' ? slot.duration === 60 && !slot.custom : true
+                      )
+                      .map((slot, index) => (
+                        <div key={`${slot.startTime}-${slot.endTime}`} className="flex flex-col gap-2">
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleSlotClick(index)}
+                            className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                              slot.isSelected
+                                ? 'bg-green-500 border-green-500 text-white shadow-lg'
+                                : 'bg-white border-gray-200 text-gray-700 hover:border-green-300 hover:bg-green-50'
+                            }`}
+                          >
+                            <div className="text-center">
+                              <div className="font-semibold text-sm">{new Date(`1970-01-01T${slot.startTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+                              <div className="text-xs opacity-75">to</div>
+                              <div className="font-semibold text-sm">{new Date(`1970-01-01T${slot.endTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+                              <div className="text-xs mt-1">({slot.duration} min){slot.custom ? ' • Custom' : ''}</div>
+                            </div>
+                          </motion.button>
+                          {slot.isSelected && (
+                            <input
+                              type="text"
+                              placeholder="Location (e.g. Clinic Room 1)"
+                              value={slot.location || ''}
+                              onChange={e => {
+                                const value = e.target.value;
+                                setTimeSlots(prev => prev.map((s, i) => i === index ? { ...s, location: value } : s));
+                              }}
+                              className="input-field w-full text-xs mt-1"
+                            />
+                          )}
+                        </div>
+                      ))}
                   </div>
                 )}
               </div>
