@@ -17,6 +17,14 @@ export const API_ENDPOINTS = {
   getUsers: '/api/users/getUsers',
   updateUser: (id: string) => `/api/users/users/${id}`,
   deleteUser: (id: string) => `/api/users/users/${id}`,
+  // Admin Clinics
+  adminClinics: '/api/admin/clinics',
+  adminClinicDetails: (clinicId: string | number) => `/api/admin/clinics/${clinicId}`,
+  adminClinicAppointments: (clinicId: string | number) => `/api/admin/clinics/${clinicId}/appointments`,
+  adminSetClinicActive: (clinicId: string | number) => `/api/admin/clinics/${clinicId}/active`,
+  adminSetDoctorActive: (doctorId: string | number) => `/api/admin/doctors/${doctorId}/active`,
+  adminDeleteClinic: (clinicId: string | number) => `/api/admin/clinics/${clinicId}`,
+  adminUpdateClinic: (clinicId: string | number) => `/api/admin/clinics/${clinicId}`,
   
   // Doctor endpoints
   doctorProfile: '/api/doctor/profile',
@@ -27,6 +35,12 @@ export const API_ENDPOINTS = {
   deleteAvailability: (slotId: string) => `/api/doctor/availability/${slotId}`,
   doctorApply: '/api/doctor/apply',
   allDoctors: '/api/doctor/all',
+  getDoctorById: (doctorId: string | number) => `/api/doctor/${doctorId}`,
+  doctorReviewSummary: (doctorId: string | number) => `/api/doctor/${doctorId}/reviews/summary`,
+  doctorReviews: (doctorId: string | number) => `/api/doctor/${doctorId}/reviews`,
+  createReview: (doctorId: string | number) => `/api/doctor/${doctorId}/reviews`,
+  doctorOwnReviewSummary: '/api/doctor/reviews/summary',
+  doctorOwnReviews: '/api/doctor/reviews',
   doctorAvailabilityBookings: (doctorId: string, date: string) => 
     `/api/doctor/availability/bookings?doctorId=${doctorId}&date=${date}`,
   doctorSpecialities: '/api/doctor/specialities',
@@ -36,14 +50,39 @@ export const API_ENDPOINTS = {
   bookAppointment: '/api/bookings/book',
   deleteBooking: (bookingId: string) => `/api/bookings/deleteBooking/${bookingId}`,
   changeBookingStatus: '/api/bookings/changeBookingStatus',
+  createFollowUp: '/api/bookings/followup',
   prescription: '/api/bookings/prescription',
   prescriptionById: (appointmentId: string) => `/api/bookings/prescription/${appointmentId}`,
   
   // Admin endpoints
   adminStats: '/api/admin/stats',
+  // Super admin extras can reuse admin stats endpoint guarded server-side
   adminApplications: '/api/admin/applications',
   approveApplication: (id: string) => `/api/admin/applications/${id}/approve`,
   rejectApplication: (id: string) => `/api/admin/applications/${id}/reject`,
+  
+  // Clinic endpoints
+  clinicApply: '/api/clinics/apply',
+  adminClinicApplications: '/api/admin/clinics/applications',
+  adminApproveClinicApplication: (id: string) => `/api/admin/clinics/applications/${id}/approve`,
+  adminRejectClinicApplication: (id: string) => `/api/admin/clinics/applications/${id}/reject`,
+  adminCreateClinicAdmin: (clinicId: string) => `/api/admin/clinics/${clinicId}/admins`,
+  
+  // Clinic admin endpoints
+  clinicDoctors: '/api/clinic/admin/doctors',
+  clinicDoctorStats: '/api/clinic/admin/doctors/stats',
+  clinicApplications: '/api/clinic/admin/applications',
+  clinicApproveApplication: (id: string) => `/api/clinic/admin/applications/${id}/approve`,
+  clinicRejectApplication: (id: string) => `/api/clinic/admin/applications/${id}/reject`,
+  clinicUpdateInfo: '/api/clinic/admin/info',
+  clinicRemoveDoctor: (doctorId: string) => `/api/clinic/admin/doctors/${doctorId}`,
+  clinicInfo: '/api/clinic/admin/info',
+  
+  // Clinic-specific public endpoints
+  getPublicClinics: '/api/clinic',
+  getClinicById: (clinicId: string) => `/api/clinic/${clinicId}`,
+  getPublicClinicDoctors: (clinicId: string) => `/api/clinic/${clinicId}/doctors`,
+  submitClinicDoctorApplication: (clinicId: string) => `/api/clinic/${clinicId}/apply`,
   
   // Video call endpoints
   videoInfo: (bookingId: string) => `/api/bookings/video/info/${bookingId}`,

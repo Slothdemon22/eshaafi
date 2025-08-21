@@ -12,7 +12,7 @@ export const adminMiddleware = (req, res, next) => {
      const decoded = jwt.verify(token, process.env.JWT_SECRET);
      req.user = decoded; 
      console.log("Decoded user:", decoded);
-     if(!req.user || req.user.role !== 'ADMIN') {
+     if(!req.user || (req.user.role !== 'ADMIN' && req.user.role !== 'SUPER_ADMIN')) {
        return res.status(403).json({ error: 'Access denied' });
      }
      next();

@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Calendar,
   Clock,
@@ -31,6 +31,7 @@ interface Doctor {
   location?: string;
   availability?: any;
   online?: boolean;
+  clinic?: { id: number; name: string; active?: boolean } | null;
 }
 
 interface AvailabilitySlot {
@@ -55,7 +56,6 @@ const appointmentSchema = z.object({
 type AppointmentFormData = z.infer<typeof appointmentSchema>;
 
 const BookAppointmentPage: React.FC = () => {
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [availableSlots, setAvailableSlots] = useState<AvailabilitySlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -65,6 +65,7 @@ const BookAppointmentPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { addToast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const {
     register,
@@ -81,60 +82,49 @@ const BookAppointmentPage: React.FC = () => {
   const selectedTime = watch('time');
   const selectedType = watch('type');
 
-  // Fetch doctors from API
+  // Fetch doctor from query param and preselect
   useEffect(() => {
-    const fetchDoctors = async () => {
+    const doctorId = searchParams?.get('doctorId');
+    const fetchDoctor = async (id: string) => {
       try {
-        const response = await fetch(buildApiUrl(API_ENDPOINTS.allDoctors), {
-          credentials: 'include'
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setDoctors(data.doctors || []);
-        } else {
-          addToast({
-            type: 'error',
-            title: 'Error',
-            message: 'Failed to load doctors'
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching doctors:', error);
-        addToast({
-          type: 'error',
-          title: 'Error',
-          message: 'Failed to load doctors'
-        });
+        const res = await fetch(buildApiUrl(API_ENDPOINTS.getDoctorById(id)));
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || 'Failed to load doctor');
+        const doc: Doctor = {
+          id: body.id,
+          name: body.name,
+          email: body.email,
+          specialty: body.specialty,
+          location: body.location,
+          clinic: body.clinic || null,
+          online: undefined,
+        };
+        setSelectedDoctor(doc);
+        setValue('doctorId', String(doc.id));
+      } catch (e: any) {
+        addToast({ type: 'error', title: 'Error', message: e.message || 'Failed to load doctor' });
       }
     };
+    if (doctorId) fetchDoctor(doctorId);
+  }, [searchParams, addToast, setValue]);
 
-    if (isAuthenticated) {
-      fetchDoctors();
-    }
-  }, [isAuthenticated, addToast]);
-
-  // Poll online status for all doctors
+  // Poll online status for the selected doctor
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    const fetchStatuses = async () => {
-      if (doctors.length === 0) return;
-      const updated = await Promise.all(doctors.map(async (doc) => {
-        try {
-          const res = await fetch(buildApiUrl(`/api/doctor/status/${doc.id}`));
-          if (res.ok) {
-            const data = await res.json();
-            return { ...doc, online: data.online };
-          }
-        } catch {}
-        return { ...doc, online: false };
-      }));
-      setDoctors(updated);
+    let interval: NodeJS.Timeout | undefined;
+    const fetchStatus = async () => {
+      if (!selectedDoctor) return;
+      try {
+        const res = await fetch(buildApiUrl(`/api/doctor/status/${selectedDoctor.id}`));
+        if (res.ok) {
+          const data = await res.json();
+          setSelectedDoctor(prev => prev ? { ...prev, online: data.online } : prev);
+        }
+      } catch {}
     };
-    fetchStatuses();
-    interval = setInterval(fetchStatuses, 5000);
-    return () => clearInterval(interval);
-  }, [doctors.length]);
+    fetchStatus();
+    interval = setInterval(fetchStatus, 5000);
+    return () => { if (interval) clearInterval(interval); };
+  }, [selectedDoctor?.id]);
 
   // Fetch available slots when doctor and date are selected
   useEffect(() => {
@@ -171,13 +161,7 @@ const BookAppointmentPage: React.FC = () => {
     fetchAvailableSlots();
   }, [selectedDoctor, selectedDate]);
 
-  const handleDoctorSelect = (doctor: Doctor) => {
-    console.log('Doctor selected:', doctor);
-    setSelectedDoctor(doctor);
-    setValue('doctorId', doctor.id.toString());
-    setValue('time', ''); // Reset time when doctor changes
-    setAvailableSlots([]); // Reset available slots
-  };
+  // No manual doctor selection; selection comes from clinics/doctors pages
 
   const handleSlotSelect = (slot: AvailabilitySlot) => {
     console.log('Slot selected:', slot);
@@ -279,47 +263,38 @@ const BookAppointmentPage: React.FC = () => {
           className="card-hover"
         >
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            {/* Doctor Selection */}
+            {/* Selected Doctor Summary */}
             <div>
               <label className="block text-lg font-semibold text-[#1F2937] mb-4">
                 <User className="inline w-5 h-5 mr-2" />
-                Select a Doctor
+                Selected Doctor
               </label>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {doctors.map((doctor) => (
-                  <motion.div
-                    key={doctor.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleDoctorSelect(doctor)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${selectedDoctor?.id === doctor.id
-                        ? 'border-[#0E6BA8] bg-[#F0F9FF] shadow-elevated'
-                        : 'border-gray-200 hover:border-[#0E6BA8]/50 hover:shadow-professional'
-                      }`}
-                  >
-                    <div className="flex items-center space-x-3 mb-3">
+              {selectedDoctor ? (
+                <div className="p-4 rounded-xl border-2 bg-[#F9FAFB]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
                       <div className="w-10 h-10 gradient-primary rounded-full flex items-center justify-center">
                         <Stethoscope className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-[#1F2937]">{doctor.name}</h3>
-                        {/* Doctor Online/Offline Status */}
-                        <span className={`flex items-center gap-1 font-medium ${doctor.online ? 'text-green-600' : 'text-red-600'}`}>
-                          <svg width="10" height="10" className="inline-block" style={{ marginRight: 4 }}>
-                            <circle cx="5" cy="5" r="5" fill={doctor.online ? '#16a34a' : '#dc2626'} />
-                          </svg>
-                          {doctor.online ? 'Online' : 'Offline'}
-                        </span>
+                        <div className="font-semibold text-[#1F2937]">{selectedDoctor.name}</div>
+                        <div className="text-sm text-[#4B5563]">{selectedDoctor.email}</div>
+                        {selectedDoctor.clinic && (
+                          <div className="text-xs text-[#0E6BA8] mt-1">Clinic: {selectedDoctor.clinic.name}</div>
+                        )}
+                        {typeof selectedDoctor.online === 'boolean' && (
+                          <div className={`text-xs mt-1 ${selectedDoctor.online ? 'text-green-600' : 'text-red-600'}`}>{selectedDoctor.online ? 'Online' : 'Offline'}</div>
+                        )}
                       </div>
                     </div>
-                    <div className="text-sm text-[#4B5563] space-y-1">
-
-
-                      <p>{doctor.email}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    <Link href={`/doctors/${selectedDoctor.id}`} className="btn-secondary">View Profile</Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl border-2 text-sm text-[#4B5563]">
+                  Please select a doctor from the <Link href="/doctors" className="text-[#0E6BA8] underline">Doctors</Link> or <Link href="/clinics" className="text-[#0E6BA8] underline">Clinics</Link> pages.
+                </div>
+              )}
               {errors.doctorId && (
                 <motion.p
                   initial={{ opacity: 0, y: -10 }}
@@ -543,3 +518,4 @@ const BookAppointmentPage: React.FC = () => {
 };
 
 export default BookAppointmentPage;
+

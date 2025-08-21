@@ -36,6 +36,8 @@ interface DoctorProfile {
     email: string;
     role: string;
   };
+  education: { degree: string; institution: string; year: string }[];
+  workExperience: { title: string; organization: string; years: string }[];
 }
 
 interface Appointment {
@@ -103,6 +105,8 @@ const DoctorProfile = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [specialtySearch, setSpecialtySearch] = useState('');
+  const [education, setEducation] = useState<{ degree: string; institution: string; year: string }[]>([]);
+  const [workExperience, setWorkExperience] = useState<{ title: string; organization: string; years: string }[]>([]);
 
   useEffect(() => {
     fetch(buildApiUrl(API_ENDPOINTS.doctorSpecialities))
@@ -123,6 +127,13 @@ const DoctorProfile = () => {
       fetchAvailabilitySlots();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (doctorProfile) {
+      setEducation(doctorProfile.education || []);
+      setWorkExperience(doctorProfile.workExperience || []);
+    }
+  }, [doctorProfile]);
 
   const fetchDoctorProfile = async () => {
     try {
@@ -199,7 +210,9 @@ const DoctorProfile = () => {
       // Update doctor profile
       await axios.put(buildApiUrl(API_ENDPOINTS.doctorProfile), {
         location: formData.location,
-        specialty: formData.specialty
+        specialty: formData.specialty,
+        education,
+        workExperience
       }, {
         withCredentials: true
       });
@@ -543,6 +556,93 @@ const DoctorProfile = () => {
                   )}
                 </div>
 
+                {/* Education & Work Experience Section (move above credentials, themed) */}
+                <div className="mt-6">
+                  <div className="mb-6 bg-blue-50/60 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-2">Education</h3>
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        {education.map((edu, idx) => (
+                          <div key={idx} className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              placeholder="Degree"
+                              value={edu.degree}
+                              onChange={e => setEducation(education.map((ed, i) => i === idx ? { ...ed, degree: e.target.value } : ed))}
+                              className="w-1/4 px-2 py-1 border rounded"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Institution"
+                              value={edu.institution}
+                              onChange={e => setEducation(education.map((ed, i) => i === idx ? { ...ed, institution: e.target.value } : ed))}
+                              className="w-1/3 px-2 py-1 border rounded"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Year"
+                              value={edu.year}
+                              onChange={e => setEducation(education.map((ed, i) => i === idx ? { ...ed, year: e.target.value } : ed))}
+                              className="w-1/6 px-2 py-1 border rounded"
+                            />
+                            <button onClick={() => setEducation(education.filter((_, i) => i !== idx))} className="text-red-500"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        ))}
+                        <button onClick={() => setEducation([...education, { degree: '', institution: '', year: '' }])} className="text-blue-600 flex items-center mt-2"><Plus className="w-4 h-4 mr-1" />Add Education</button>
+                      </div>
+                    ) : (
+                      <ul className="list-disc ml-6 text-blue-900">
+                        {education.length === 0 && <li>No education info added</li>}
+                        {education.map((edu, idx) => (
+                          <li key={idx}>{edu.degree} - {edu.institution} ({edu.year})</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="mb-6 bg-green-50/60 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-green-900 mb-2">Work Experience</h3>
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        {workExperience.map((exp, idx) => (
+                          <div key={idx} className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              placeholder="Title"
+                              value={exp.title}
+                              onChange={e => setWorkExperience(workExperience.map((ex, i) => i === idx ? { ...ex, title: e.target.value } : ex))}
+                              className="w-1/4 px-2 py-1 border rounded"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Organization"
+                              value={exp.organization}
+                              onChange={e => setWorkExperience(workExperience.map((ex, i) => i === idx ? { ...ex, organization: e.target.value } : ex))}
+                              className="w-1/3 px-2 py-1 border rounded"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Years"
+                              value={exp.years}
+                              onChange={e => setWorkExperience(workExperience.map((ex, i) => i === idx ? { ...ex, years: e.target.value } : ex))}
+                              className="w-1/6 px-2 py-1 border rounded"
+                            />
+                            <button onClick={() => setWorkExperience(workExperience.filter((_, i) => i !== idx))} className="text-red-500"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        ))}
+                        <button onClick={() => setWorkExperience([...workExperience, { title: '', organization: '', years: '' }])} className="text-green-600 flex items-center mt-2"><Plus className="w-4 h-4 mr-1" />Add Experience</button>
+                      </div>
+                    ) : (
+                      <ul className="list-disc ml-6 text-green-900">
+                        {workExperience.length === 0 && <li>No work experience info added</li>}
+                        {workExperience.map((exp, idx) => (
+                          <li key={idx}>{exp.title} - {exp.organization} ({exp.years})</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                {/* Account Type */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Account Type

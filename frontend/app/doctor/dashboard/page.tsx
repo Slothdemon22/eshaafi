@@ -44,6 +44,7 @@ interface DashboardStats {
   todayAppointments: number;
   averageRating: number;
   totalPatients: number;
+  reviewCount: number;
 }
 
 const DoctorDashboardPage: React.FC = () => {
@@ -53,15 +54,16 @@ const DoctorDashboardPage: React.FC = () => {
     pendingAppointments: 0,
     completedAppointments: 0,
     todayAppointments: 0,
-    averageRating: 4.8,
-    totalPatients: 0
+    averageRating: 0,
+    totalPatients: 0,
+    reviewCount: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'>('all');
   const [online, setOnline] = useState<boolean | null>(null);
   const [isStatusLoading, setIsStatusLoading] = useState(false);
-  const { user, isAuthenticated, isDoctor } = useAuth();
+  const { user, isAuthenticated, isDoctor, loading } = useAuth();
   const { addToast } = useToast();
 
   const fetchDashboardData = async (isRefresh = false) => {
@@ -72,10 +74,15 @@ const DoctorDashboardPage: React.FC = () => {
         setIsLoading(true);
       }
       
-      // Fetch appointments
-      const appointmentsResponse = await fetch('http://localhost:5000/api/doctor/appointments', {
-        credentials: 'include'
-      });
+      // Fetch appointments and review summary in parallel
+      const [appointmentsResponse, reviewSummaryResponse] = await Promise.all([
+        fetch('http://localhost:5000/api/doctor/appointments', {
+          credentials: 'include'
+        }),
+        fetch('http://localhost:5000/api/doctor/reviews/summary', {
+          credentials: 'include'
+        })
+      ]);
 
       if (appointmentsResponse.ok) {
         const appointmentsData = await appointmentsResponse.json();
@@ -103,13 +110,23 @@ const DoctorDashboardPage: React.FC = () => {
         const todayAppointments = transformedAppointments.filter(apt => apt.date === today).length;
         const uniquePatients = new Set(transformedAppointments.map(apt => apt.patientEmail)).size;
         
+        // Get review summary
+        let averageRating = 0;
+        let reviewCount = 0;
+        if (reviewSummaryResponse.ok) {
+          const reviewData = await reviewSummaryResponse.json();
+          averageRating = reviewData.avgBehaviour || 0;
+          reviewCount = reviewData.count || 0;
+        }
+        
         setStats({
           totalAppointments,
           pendingAppointments,
           completedAppointments,
           todayAppointments,
-          averageRating: 4.8, // This would come from a rating system
-          totalPatients: uniquePatients
+          averageRating: averageRating,
+          totalPatients: uniquePatients,
+          reviewCount: reviewCount
         });
 
         if (isRefresh) {
@@ -140,6 +157,17 @@ const DoctorDashboardPage: React.FC = () => {
       fetchDashboardData();
     }
   }, [isAuthenticated, isDoctor]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center gradient-bg">
+        <div className="text-center">
+          <div className="spinner mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Checking your access...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Fetch online status on mount
   useEffect(() => {
@@ -372,7 +400,9 @@ const DoctorDashboardPage: React.FC = () => {
               Patient Rating
             </h3>
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-900 mb-2">{stats.averageRating}</div>
+              <div className="text-4xl font-bold text-gray-900 mb-2">
+                {stats.averageRating > 0 ? stats.averageRating.toFixed(1) : 'N/A'}
+              </div>
               <div className="flex items-center justify-center space-x-1 mb-2">
                 {[...Array(5)].map((_, i) => (
                   <Star 
@@ -381,6 +411,12 @@ const DoctorDashboardPage: React.FC = () => {
                   />
                 ))}
               </div>
+              <p className="text-sm text-gray-600">
+                {stats.reviewCount > 0 
+                  ? `${stats.reviewCount} review${stats.reviewCount === 1 ? '' : 's'}`
+                  : 'No reviews yet'
+                }
+              </p>
               <p className="text-sm text-gray-600">Based on patient reviews</p>
             </div>
           </div>
@@ -407,6 +443,10 @@ const DoctorDashboardPage: React.FC = () => {
               <Link href="/doctor/appointments" className="btn-primary flex items-center justify-center space-x-2">
                 <Calendar className="w-4 h-4" />
                 <span>View All Appointments</span>
+              </Link>
+              <Link href="/doctor/reviews" className="btn-secondary flex items-center justify-center space-x-2">
+                <MessageSquare className="w-4 h-4" />
+                <span>View All Reviews</span>
               </Link>
             </div>
           </div>

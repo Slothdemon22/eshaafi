@@ -27,6 +27,9 @@ export  const authServiceLogin = async (email,password) => {
   console.log("Auth Service Login called with email:", email);
   
   // Hardcoded admin credentials
+  if (process.env.SUPER_ADMIN_EMAIL && process.env.SUPER_ADMIN_PASSWORD && email === process.env.SUPER_ADMIN_EMAIL && password === process.env.SUPER_ADMIN_PASSWORD) {
+    return { id: 0, name: 'Super Admin', email, role: 'SUPER_ADMIN' };
+  }
   if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD && email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
     return { id: 0, name: 'Admin', email, role: 'ADMIN' };
   }
@@ -83,7 +86,26 @@ export const getAppointmentsServiceUser = async (userId) => {
           user: true
         }
       },
-      prescription: true
+      prescription: true,
+      followUpOf: {
+        include: {
+          doctor: {
+            include: {
+              user: true
+            }
+          }
+        }
+      },
+      followUps: {
+        include: {
+          doctor: {
+            include: {
+              user: true
+            }
+          }
+        }
+      },
+      review: true
     }
   });
   

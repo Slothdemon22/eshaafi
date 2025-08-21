@@ -16,6 +16,8 @@ interface Doctor {
   location: string;
   availability?: any[];
   online?: boolean;
+  education?: { degree: string; institution: string; year: string }[];
+  workExperience?: { title: string; organization: string; years: string }[];
 }
 
 interface Speciality {
@@ -218,7 +220,13 @@ const PublicDoctorsPage: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <Stethoscope className="w-6 h-6 text-[#1CA7A6]" />
-                    <h2 className="text-xl font-semibold text-[#0E6BA8]">{doctor.name}</h2>
+                    <h2
+                      className="text-xl font-semibold text-[#0E6BA8] hover:underline cursor-pointer"
+                      onClick={() => router.push(`/doctors/${doctor.id}`)}
+                      aria-label={`View profile of ${doctor.name}`}
+                    >
+                      {doctor.name}
+                    </h2>
                     {/* Doctor Online/Offline Status */}
                     <span className={`flex items-center gap-1 font-medium ${doctor.online ? 'text-green-600' : 'text-red-600'}`}>
                       <svg width="10" height="10" className="inline-block" style={{ marginRight: 4 }}>
@@ -238,6 +246,28 @@ const PublicDoctorsPage: React.FC = () => {
                     <Mail className="w-4 h-4 mr-1" />
                     {doctor.email}
                   </div>
+                  {/* Education */}
+                  {doctor.education && doctor.education.length > 0 && (
+                    <div className="mb-1 bg-blue-50/60 rounded-lg p-2">
+                      <div className="font-semibold text-blue-900 text-sm mb-1">Education</div>
+                      <ul className="list-disc ml-5 text-blue-900 text-sm">
+                        {doctor.education.map((edu, i) => (
+                          <li key={i}>{edu.degree} - {edu.institution} ({edu.year})</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {/* Work Experience */}
+                  {doctor.workExperience && doctor.workExperience.length > 0 && (
+                    <div className="mb-1 bg-green-50/60 rounded-lg p-2">
+                      <div className="font-semibold text-green-900 text-sm mb-1">Work Experience</div>
+                      <ul className="list-disc ml-5 text-green-900 text-sm">
+                        {doctor.workExperience.map((exp, i) => (
+                          <li key={i}>{exp.title} - {exp.organization} ({exp.years})</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
                 <button
                   className="btn-primary mt-4 flex items-center justify-center gap-2 w-full"

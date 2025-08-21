@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { API_ENDPOINTS, buildApiUrl } from '@/lib/config';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
@@ -100,7 +101,10 @@ const RegisterPage: React.FC = () => {
             <div className="text-sm text-[#4B5563] bg-[#F0F9FF] p-4 rounded-lg border border-[#0E6BA8]/20">
               <div className="flex items-center space-x-2">
                 <UserCheck className="w-4 h-4 text-[#0E6BA8]" />
-                <span>You are creating a patient account. Doctors should apply using the doctor application form.</span>
+                <span>
+                  You are creating a patient account. Doctors should apply using the doctor application form. Clinics can{' '}
+                  <Link href="/clinic/apply" className="text-[#0E6BA8] underline">apply here</Link>.
+                </span>
               </div>
             </div>
 

@@ -38,6 +38,41 @@ export const bookingServiceAddBooking = async (patientId, doctorId, dateTime, re
     return booking;
 }
 
+export const bookingServiceAddFollowUp = async ({ originalBookingId, dateTime, type = 'PHYSICAL' }) => {
+    // Fetch original booking to get doctorId and patientId
+    const original = await prisma.booking.findUnique({ where: { id: Number(originalBookingId) } });
+    if (!original) {
+        throw new Error('Original booking not found');
+    }
+    const status = 'BOOKED';
+    let videoRoomId = null;
+    if (type === 'VIRTUAL') {
+        try {
+            const room = await create100msRoom(`${original.patientId}_${original.doctorId}_${Date.now()}`);
+            const roomId = typeof room === 'string' ? room : (room && room.id ? room.id : null);
+            if (!roomId) throw new Error('Room ID not found in 100ms room creation response');
+            videoRoomId = await create100msRoomCode(roomId);
+        } catch (err) {
+            console.error('Error during 100ms room/room code creation for follow-up:', err);
+            throw err;
+        }
+    }
+    const booking = await prisma.booking.create({
+        data: {
+            patientId: original.patientId,
+            doctorId: original.doctorId,
+            dateTime: new Date(dateTime),
+            reason: original.reason,
+            symptoms: original.symptoms,
+            status,
+            type,
+            videoRoomId,
+            followUpOfId: original.id
+        }
+    });
+    return booking;
+}
+
 export const bookingServiceDeleteBooking = async (id) => {
     console.log("Booking Service delete booking called with ID:", id);
 

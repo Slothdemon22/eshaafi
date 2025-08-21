@@ -1,6 +1,7 @@
 import express from "express";
-import { getProfileDoctor, addAvailabilityDoctor, updateDoctorProfile, getDoctorAppointments, getDoctorAvailability, deleteAvailabilitySlot, submitDoctorApplication, getDoctorAvailabilityWithBookingsController, getAllDoctorsForBooking, addMultipleAvailabilitySlots, getSpecialities, getDoctorCountsBySpeciality, setDoctorOnlineStatus, getDoctorOnlineStatus } from '../controllers/doctorController.js';
+import { getProfileDoctor, addAvailabilityDoctor, updateDoctorProfile, getDoctorAppointments, getDoctorAvailability, deleteAvailabilitySlot, submitDoctorApplication, getDoctorAvailabilityWithBookingsController, getAllDoctorsForBooking, addMultipleAvailabilitySlots, getSpecialities, getDoctorCountsBySpeciality, setDoctorOnlineStatus, getDoctorOnlineStatus, createReview, getDoctorReviews, getDoctorReviewSummary, getDoctorByIdPublic } from '../controllers/doctorController.js';
 import { doctorMiddleware } from '../middlewares/doctorMiddleware.js';
+import { authMiddleware } from '../middlewares/authmiddleware.js';
 
 const doctorRouter=express.Router();
 
@@ -25,5 +26,20 @@ doctorRouter.get("/availability/bookings", getDoctorAvailabilityWithBookingsCont
 doctorRouter.post('/status', doctorMiddleware, setDoctorOnlineStatus);
 // Get status (public)
 doctorRouter.get('/status/:doctorId', getDoctorOnlineStatus);
+
+// Review endpoints
+// Create review (patient only, completed appointment required)
+doctorRouter.post('/:doctorId/reviews', authMiddleware, createReview);
+// Get all reviews for a doctor (public)
+doctorRouter.get('/:doctorId/reviews', getDoctorReviews);
+// Get review summary (public)
+doctorRouter.get('/:doctorId/reviews/summary', getDoctorReviewSummary);
+// Get doctor's own review summary (protected)
+doctorRouter.get('/reviews/summary', doctorMiddleware, getDoctorReviewSummary);
+// Get doctor's own reviews (protected)
+doctorRouter.get('/reviews', doctorMiddleware, getDoctorReviews);
+
+// Public route to fetch single doctor by id (keep after other prefixed routes to avoid conflicts)
+doctorRouter.get('/:doctorId', getDoctorByIdPublic);
 
 export default doctorRouter;

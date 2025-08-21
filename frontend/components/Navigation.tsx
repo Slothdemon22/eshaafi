@@ -15,11 +15,12 @@ import {
   Home,
   Settings,
   Bell,
-  Heart
+  Heart,
+  Building2
 } from 'lucide-react';
 
 const Navigation: React.FC = () => {
-  const { user, logout, isAuthenticated, isDoctor, isAdmin, isPatient } = useAuth();
+  const { user, logout, isAuthenticated, isDoctor, isAdmin, isClinicAdmin, isSuperAdmin, isPatient } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -29,10 +30,12 @@ const Navigation: React.FC = () => {
 
   const navItems = [
     
-    // Only show 'Doctors' if not authenticated or isPatient
-    ...((!isAuthenticated || isPatient) ? [
+    // Public-only links (not authenticated)
+    ...(!isAuthenticated ? [
       { href: '/doctors', label: 'Doctors', icon: Stethoscope },
+      { href: '/clinics', label: 'Clinics', icon: Building2 },
     ] : []),
+    // Patient quick links
     ...(isAuthenticated && isPatient ? [
       { href: '/appointments', label: 'My Appointments', icon: Calendar },
       { href: '/book-appointment', label: 'Book Appointment', icon: Calendar },
@@ -44,10 +47,22 @@ const Navigation: React.FC = () => {
       { href: '/doctor/availability', label: 'Availability', icon: Settings },
       { href: '/doctor/profile', label: 'Profile', icon: User },
     ] : []),
+    // Admin-only menus
     ...(isAuthenticated && isAdmin ? [
       { href: '/admin/dashboard', label: 'Admin Dashboard', icon: Users },
       { href: '/admin/doctors', label: 'Manage Doctors', icon: Stethoscope },
       { href: '/admin/users', label: 'Manage Users', icon: Users },
+    ] : []),
+    // Super Admin menus
+    ...(isAuthenticated && isSuperAdmin ? [
+      { href: '/admin/dashboard', label: 'Super Admin Dashboard', icon: Home },
+      { href: '/admin/users', label: 'Manage Users', icon: Users },
+      { href: '/admin/clinics', label: 'Manage Clinics', icon: Users },
+      { href: '/admin/doctors', label: 'Manage Doctors', icon: Stethoscope },
+    ] : []),
+    ...(isAuthenticated && isClinicAdmin ? [
+      { href: '/clinic/dashboard', label: 'Clinic Dashboard', icon: Users },
+      { href: '/clinic/doctors', label: 'Manage Doctors', icon: Stethoscope },
     ] : []),
   ];
 

@@ -52,6 +52,9 @@ export const getUserProfile = async (req, res) => {
     if (req.user.role === 'ADMIN') {
       return res.status(200).json({ user: { id: 0, name: 'Admin', email: req.user.email, role: 'ADMIN' } });
     }
+    if (req.user.role === 'SUPER_ADMIN') {
+      return res.status(200).json({ user: { id: 0, name: 'Super Admin', email: req.user.email, role: 'SUPER_ADMIN' } });
+    }
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {

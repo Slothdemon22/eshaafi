@@ -17,7 +17,8 @@ import {
   Search,
   RefreshCw,
   Pill,
-  Heart
+  Heart,
+  Star
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toaster';
@@ -25,6 +26,7 @@ import Link from 'next/link';
 import { buildApiUrl, API_ENDPOINTS, formatTimeAMPM } from '@/lib/config';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+import ReviewModal from '@/components/ReviewModal';
 
 const VideoCall = dynamic(() => import('@/components/VideoCall'), { ssr: false });
 
@@ -51,6 +53,27 @@ interface Appointment {
   type?: string;
   videoRoomId?: string;
   slotDuration?: number; // 30 or 60
+  followUpOf?: {
+    id: number;
+    doctorName: string;
+    doctorSpecialization: string;
+    date: string;
+    time: string;
+  };
+  followUps?: Array<{
+    id: number;
+    doctorName: string;
+    doctorSpecialization: string;
+    date: string;
+    time: string;
+  }>;
+  review?: {
+    id: number;
+    behaviourRating: number;
+    recommendationRating: number;
+    reviewText?: string;
+  };
+  doctorId?: number;
 }
 
 const AppointmentsPage: React.FC = () => {
@@ -60,7 +83,18 @@ const AppointmentsPage: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'PENDING' | 'BOOKED' | 'REJECTED' | 'COMPLETED'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [durationFilter, setDurationFilter] = useState<'all' | 'half' | 'full'>('all');
-  const { user, isAuthenticated } = useAuth();
+  const [reviewModal, setReviewModal] = useState<{
+    isOpen: boolean;
+    doctorId: number;
+    doctorName: string;
+    appointmentId: number;
+  }>({
+    isOpen: false,
+    doctorId: 0,
+    doctorName: '',
+    appointmentId: 0
+  });
+  const { user, isAuthenticated, loading } = useAuth();
   const { addToast } = useToast();
   const router = useRouter();
 
@@ -88,16 +122,40 @@ const AppointmentsPage: React.FC = () => {
           time: new Date(apt.dateTime).toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit',
-            hour12: false 
+            hour12: true 
           }),
           reason: apt.reason || 'No reason provided',
           status: apt.status,
           symptoms: apt.symptoms,
           prescription: apt.prescription,
-          rejectionReason: apt.rejectionReason, // Map this field
-          type: apt.type, // Add type field
-          videoRoomId: apt.videoRoomId, // Add videoRoomId field
-          slotDuration: apt.slotDuration // <-- new
+          rejectionReason: apt.rejectionReason,
+          type: apt.type,
+          videoRoomId: apt.videoRoomId,
+          slotDuration: apt.slotDuration,
+          doctorId: apt.doctor?.id,
+          followUpOf: apt.followUpOf ? {
+            id: apt.followUpOf.id,
+            doctorName: apt.followUpOf.doctor?.user?.name || 'Unknown Doctor',
+            doctorSpecialization: apt.followUpOf.doctor?.specialty || 'General',
+            date: new Date(apt.followUpOf.dateTime).toISOString().split('T')[0],
+            time: new Date(apt.followUpOf.dateTime).toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: true 
+            })
+          } : undefined,
+          followUps: apt.followUps?.map((followUp: any) => ({
+            id: followUp.id,
+            doctorName: followUp.doctor?.user?.name || 'Unknown Doctor',
+            doctorSpecialization: followUp.doctor?.specialty || 'General',
+            date: new Date(followUp.dateTime).toISOString().split('T')[0],
+            time: new Date(followUp.dateTime).toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: true 
+            })
+          })) || [],
+          review: apt.review
         }));
         setAppointments(transformedAppointments);
         
@@ -177,6 +235,21 @@ const AppointmentsPage: React.FC = () => {
     }
   };
 
+  const handleOpenReviewModal = (appointment: Appointment) => {
+    if (!appointment.doctorId) return;
+    setReviewModal({
+      isOpen: true,
+      doctorId: appointment.doctorId,
+      doctorName: appointment.doctorName,
+      appointmentId: parseInt(appointment.id)
+    });
+  };
+
+  const handleReviewSubmitted = () => {
+    // Refresh appointments to show the new review
+    fetchAppointments(true);
+  };
+
   const getStatusColor = (status: Appointment['status']) => {
     switch (status) {
       case 'PENDING':
@@ -237,18 +310,23 @@ const AppointmentsPage: React.FC = () => {
     return matchesFilter && matchesSearch && matchesDuration;
   });
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center gradient-bg">
+        <div className="text-center">
+          <div className="spinner mx-auto mb-4"></div>
+          <p className="text-[#4B5563] font-medium">Checking your access...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center gradient-bg">
         <div className="text-center">
-          <div className="w-20 h-20 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-elevated">
-            <Heart className="w-10 h-10 text-white" />
-          </div>
-          <h2 className="text-3xl font-bold text-[#1F2937] mb-4 heading-font">Authentication Required</h2>
-          <p className="text-[#4B5563] mb-8 text-lg">Please log in to view your appointments.</p>
-          <Link href="/login" className="btn-primary">
-            Go to Login
-          </Link>
+          <div className="spinner mx-auto mb-4"></div>
+          <p className="text-[#4B5563] font-medium">Checking your access...</p>
         </div>
       </div>
     );
@@ -269,10 +347,10 @@ const AppointmentsPage: React.FC = () => {
           
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-[#1F2937] mb-3 heading-font">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-[#1F2937] mb-3 heading-font">
                 My Appointments
               </h1>
-              <p className="text-xl text-[#4B5563]">
+              <p className="text-base sm:text-lg text-[#4B5563]">
                 Manage and track your healthcare appointments
               </p>
             </div>
@@ -290,7 +368,7 @@ const AppointmentsPage: React.FC = () => {
           transition={{ delay: 0.2 }}
           className="card-hover mb-8"
         >
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 gap-3 md:gap-4">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Filter className="w-4 h-4 text-[#4B5563]" />
@@ -299,7 +377,7 @@ const AppointmentsPage: React.FC = () => {
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value as any)}
-                className="input-field w-auto"
+                className="input-field w-full md:w-auto"
               >
                 <option value="all">All Appointments</option>
                 <option value="PENDING">Pending</option>
@@ -311,7 +389,7 @@ const AppointmentsPage: React.FC = () => {
               <select
                 value={durationFilter}
                 onChange={e => setDurationFilter(e.target.value as any)}
-                className="input-field w-auto"
+                className="input-field w-full md:w-auto"
               >
                 <option value="all">All Durations</option>
                 <option value="half">Half Hour</option>
@@ -327,7 +405,7 @@ const AppointmentsPage: React.FC = () => {
               </button>
             </div>
             
-            <div className="relative">
+            <div className="relative w-full md:w-auto">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
               <input
                 type="text"
@@ -373,7 +451,7 @@ const AppointmentsPage: React.FC = () => {
             </Link>
           </motion.div>
         ) : (
-          <div className="grid gap-6">
+          <div className="grid gap-4 sm:gap-6">
             {filteredAppointments.map((appointment, index) => (
               <motion.div
                 key={appointment.id}
@@ -386,25 +464,25 @@ const AppointmentsPage: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-6">
                       <div>
-                        <h3 className="text-2xl font-semibold text-[#1F2937] mb-2 heading-font">
+                        <h3 className="text-xl sm:text-2xl font-semibold text-[#1F2937] mb-2 heading-font">
                           {appointment.doctorName}
                         </h3>
-                        <p className="text-[#4B5563] text-lg">{appointment.doctorSpecialization}</p>
+                        <p className="text-[#4B5563] text-base sm:text-lg">{appointment.doctorSpecialization}</p>
                       </div>
-                      <div className={`flex items-center space-x-2 px-4 py-2 rounded-xl border text-sm font-semibold ${getStatusColor(appointment.status)}`}>
+                      <div className={`flex items-center space-x-2 px-3 py-1 rounded-xl border text-xs sm:text-sm font-semibold ${getStatusColor(appointment.status)}`}>
                         {getStatusIcon(appointment.status)}
                         <span>{appointment.status}</span>
                       </div>
                     </div>
                     
-                    <div className="grid md:grid-cols-2 gap-6 mb-6">
+                    <div className="grid md:grid-cols-2 gap-4 sm:gap-6 mb-6">
                       <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center">
                           <Calendar className="w-6 h-6 text-white" />
                         </div>
                         <div>
                           <p className="text-sm text-[#4B5563] font-medium">Date</p>
-                          <p className="font-semibold text-[#1F2937] text-lg">
+                          <p className="font-semibold text-[#1F2937] text-base sm:text-lg">
                             {new Date(appointment.date).toLocaleDateString('en-US', {
                               weekday: 'long',
                               year: 'numeric',
@@ -421,7 +499,7 @@ const AppointmentsPage: React.FC = () => {
                         </div>
                         <div>
                           <p className="text-sm text-[#4B5563] font-medium">Time</p>
-                          <p className="font-semibold text-[#1F2937] text-lg">
+                          <p className="font-semibold text-[#1F2937] text-base sm:text-lg">
                             {appointment.time && formatTimeAMPM(appointment.time)}
                           </p>
                         </div>
@@ -435,7 +513,7 @@ const AppointmentsPage: React.FC = () => {
                         </div>
                         <div>
                           <p className="text-sm text-[#4B5563] font-medium mb-1">Reason for Visit</p>
-                          <p className="text-[#1F2937] text-lg">{appointment.reason}</p>
+                          <p className="text-[#1F2937] text-base sm:text-lg">{appointment.reason}</p>
                         </div>
                       </div>
                       
@@ -446,7 +524,7 @@ const AppointmentsPage: React.FC = () => {
                           </div>
                           <div>
                             <p className="text-sm text-[#4B5563] font-medium mb-1">Symptoms</p>
-                            <p className="text-[#1F2937] text-lg">{appointment.symptoms}</p>
+                            <p className="text-[#1F2937] text-base sm:text-lg">{appointment.symptoms}</p>
                           </div>
                         </div>
                       )}
@@ -467,6 +545,85 @@ const AppointmentsPage: React.FC = () => {
                             {appointment.prescription.notes && (
                               <p className="text-[#4B5563] mt-2">
                                 <span className="font-medium">Notes:</span> {appointment.prescription.notes}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Follow-up Information */}
+                      {appointment.followUpOf && (
+                        <div className="flex items-start space-x-4">
+                          <div className="w-10 h-10 bg-[#FEF3C7] rounded-xl flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-[#D97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm text-[#4B5563] font-medium mb-1">Follow-up Appointment</p>
+                            <p className="text-[#1F2937] text-lg">
+                              This is a follow-up to your appointment with Dr. {appointment.followUpOf.doctorName}
+                            </p>
+                            <p className="text-[#4B5563] text-sm">
+                              Original appointment: {new Date(appointment.followUpOf.date).toLocaleDateString()} at {formatTimeAMPM(appointment.followUpOf.time)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Review Information */}
+                      {appointment.review && (
+                        <div className="flex items-start space-x-4">
+                          <div className="w-10 h-10 bg-[#E0F2FE] rounded-xl flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-[#0284C7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm text-[#4B5563] font-medium mb-1">Your Review</p>
+                            <div className="flex items-center space-x-4 mb-2">
+                              <div className="flex items-center space-x-1">
+                                <span className="text-sm text-[#4B5563]">Behaviour:</span>
+                                <div className="flex">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <svg
+                                      key={star}
+                                      className={`w-4 h-4 ${
+                                        star <= appointment.review!.behaviourRating
+                                          ? 'text-yellow-400 fill-current'
+                                          : 'text-gray-300'
+                                      }`}
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <span className="text-sm text-[#4B5563]">Recommendation:</span>
+                                <div className="flex">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <svg
+                                      key={star}
+                                      className={`w-4 h-4 ${
+                                        star <= appointment.review!.recommendationRating
+                                          ? 'text-yellow-400 fill-current'
+                                          : 'text-gray-300'
+                                      }`}
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            {appointment.review.reviewText && (
+                              <p className="text-[#4B5563] text-sm italic">
+                                "{appointment.review.reviewText}"
                               </p>
                             )}
                           </div>
@@ -499,10 +656,21 @@ const AppointmentsPage: React.FC = () => {
                     )}
                     
                     {appointment.status === 'COMPLETED' && (
-                      <div className="text-center">
+                      <div className="text-center space-y-2">
                         <p className="text-sm text-[#0284C7] font-semibold">Completed</p>
                         {appointment.prescription && (
-                          <p className="text-xs text-[#16A34A] mt-1 font-medium">Prescription available</p>
+                          <p className="text-xs text-[#16A34A] font-medium">Prescription available</p>
+                        )}
+                        {!appointment.review && (
+                          <button
+                            onClick={() => handleOpenReviewModal(appointment)}
+                            className="btn-primary text-sm px-4 py-2"
+                          >
+                            Rate & Review
+                          </button>
+                        )}
+                        {appointment.review && (
+                          <p className="text-xs text-[#16A34A] font-medium">✓ Reviewed</p>
                         )}
                       </div>
                     )}
@@ -532,6 +700,16 @@ const AppointmentsPage: React.FC = () => {
             ))}
           </div>
         )}
+
+        {/* Review Modal */}
+        <ReviewModal
+          isOpen={reviewModal.isOpen}
+          onClose={() => setReviewModal(prev => ({ ...prev, isOpen: false }))}
+          doctorId={reviewModal.doctorId}
+          doctorName={reviewModal.doctorName}
+          appointmentId={reviewModal.appointmentId}
+          onReviewSubmitted={handleReviewSubmitted}
+        />
       </div>
     </div>
   );

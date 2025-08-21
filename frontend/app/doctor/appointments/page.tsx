@@ -20,7 +20,8 @@ import {
   RefreshCw,
   Pill,
   Plus,
-  Edit
+  Edit,
+  Star
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toaster';
@@ -55,6 +56,12 @@ interface Appointment {
   rejectionReason?: string; // Add this field
   type?: string;
   videoRoomId?: string;
+  review?: {
+    id: number;
+    behaviourRating: number;
+    recommendationRating: number;
+    reviewText?: string;
+  };
 }
 
 const DoctorAppointmentsPage: React.FC = () => {
@@ -76,7 +83,10 @@ const DoctorAppointmentsPage: React.FC = () => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectingAppointmentId, setRejectingAppointmentId] = useState<string | null>(null);
-  const { user, isAuthenticated, isDoctor } = useAuth();
+  const [showFollowUpModal, setShowFollowUpModal] = useState(false);
+  const [followUpDateTime, setFollowUpDateTime] = useState('');
+  const [followUpType, setFollowUpType] = useState<'PHYSICAL' | 'VIRTUAL'>('PHYSICAL');
+  const { user, isAuthenticated, isDoctor, loading } = useAuth();
   const { addToast } = useToast();
   const router = useRouter();
 
@@ -104,16 +114,17 @@ const DoctorAppointmentsPage: React.FC = () => {
           time: new Date(apt.dateTime).toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit',
-            hour12: false 
+            hour12: true 
           }),
           reason: apt.reason || 'No reason provided',
           status: apt.status,
           symptoms: apt.symptoms,
           notes: apt.notes,
           prescription: apt.prescription,
-          rejectionReason: apt.rejectionReason, // Add this field
-          type: apt.type, // Add this field
-          videoRoomId: apt.videoRoomId // Add this field
+          rejectionReason: apt.rejectionReason,
+          type: apt.type,
+          videoRoomId: apt.videoRoomId,
+          review: apt.review
         }));
         setAppointments(transformedAppointments);
         
@@ -145,6 +156,17 @@ const DoctorAppointmentsPage: React.FC = () => {
       fetchAppointments();
     }
   }, [isAuthenticated, isDoctor]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center medical-gradient">
+        <div className="text-center">
+          <div className="spinner mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking your access...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleStatusChange = async (appointmentId: string, newStatus: Appointment['status']) => {
     if (newStatus === 'REJECTED') {
@@ -184,6 +206,12 @@ const DoctorAppointmentsPage: React.FC = () => {
         title: 'Status Updated',
         message: `Appointment status has been updated to ${newStatus.toLowerCase()}.`,
       });
+
+      if (newStatus === 'COMPLETED') {
+        const apt = appointments.find(a => a.id === appointmentId) || null;
+        setSelectedAppointment(apt);
+        setShowFollowUpModal(true);
+      }
     } catch (error: any) {
       addToast({
         type: 'error',
@@ -324,6 +352,45 @@ const DoctorAppointmentsPage: React.FC = () => {
       });
     }
     setShowPrescriptionModal(true);
+  };
+
+  const handleCreateFollowUp = async () => {
+    if (!selectedAppointment) return;
+    if (!followUpDateTime) {
+      addToast({ type: 'error', title: 'Missing date/time', message: 'Please select a follow-up date and time.' });
+      return;
+    }
+    try {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.createFollowUp), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ bookingId: selectedAppointment.id, dateTime: followUpDateTime, type: followUpType })
+      });
+      if (!response.ok) throw new Error('Failed to create follow-up');
+      const { booking } = await response.json();
+      setAppointments(prev => [
+        {
+          id: booking.id.toString(),
+          patientName: selectedAppointment.patientName,
+          patientEmail: selectedAppointment.patientEmail,
+          patientPhone: selectedAppointment.patientPhone,
+          date: new Date(booking.dateTime).toISOString().split('T')[0],
+          time: new Date(booking.dateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+          reason: selectedAppointment.reason,
+          status: 'BOOKED',
+          symptoms: selectedAppointment.symptoms,
+          type: booking.type,
+          videoRoomId: booking.videoRoomId
+        },
+        ...prev
+      ]);
+      setShowFollowUpModal(false);
+      setFollowUpDateTime('');
+      addToast({ type: 'success', title: 'Follow-up scheduled', message: 'The follow-up appointment has been created.' });
+    } catch (err: any) {
+      addToast({ type: 'error', title: 'Failed', message: err.message || 'Could not create follow-up.' });
+    }
   };
 
   const handleJoinVideoCall = async (appointment: Appointment) => {
@@ -586,6 +653,63 @@ const DoctorAppointmentsPage: React.FC = () => {
                           </div>
                         </div>
                       )}
+
+                      {/* Review Information */}
+                      {appointment.review && (
+                        <div className="flex items-start space-x-3">
+                          <svg className="w-5 h-5 text-yellow-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                          </svg>
+                          <div>
+                            <p className="text-sm text-gray-500">Patient Review</p>
+                            <div className="flex items-center space-x-4 mb-2">
+                              <div className="flex items-center space-x-1">
+                                <span className="text-xs text-gray-600">Behaviour:</span>
+                                <div className="flex">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <svg
+                                      key={star}
+                                      className={`w-3 h-3 ${
+                                        star <= appointment.review!.behaviourRating
+                                          ? 'text-yellow-400 fill-current'
+                                          : 'text-gray-300'
+                                      }`}
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.922-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <span className="text-xs text-gray-600">Recommendation:</span>
+                                <div className="flex">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <svg
+                                      key={star}
+                                      className={`w-3 h-3 ${
+                                        star <= appointment.review!.recommendationRating
+                                          ? 'text-yellow-400 fill-current'
+                                          : 'text-gray-300'
+                                      }`}
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.922-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            {appointment.review.reviewText && (
+                              <p className="text-sm text-gray-700 italic">
+                                "{appointment.review.reviewText}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -791,6 +915,44 @@ const DoctorAppointmentsPage: React.FC = () => {
                 >
                   Reject
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showFollowUpModal && selectedAppointment && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-lg p-6 w-full max-w-md"
+            >
+              <h3 className="text-xl font-semibold mb-4">Schedule Follow-up</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    value={followUpDateTime}
+                    onChange={e => setFollowUpDateTime(e.target.value)}
+                    className="input-field w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <select
+                    value={followUpType}
+                    onChange={e => setFollowUpType(e.target.value as any)}
+                    className="input-field w-full"
+                  >
+                    <option value="PHYSICAL">Physical</option>
+                    <option value="VIRTUAL">Virtual</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex space-x-3 mt-6">
+                <button onClick={() => setShowFollowUpModal(false)} className="btn-secondary flex-1">Cancel</button>
+                <button onClick={handleCreateFollowUp} className="btn-primary flex-1">Create</button>
               </div>
             </motion.div>
           </div>

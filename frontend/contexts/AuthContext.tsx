@@ -3,13 +3,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { config, buildApiUrl, API_ENDPOINTS } from '@/lib/config';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface User {
   id: number;
   name: string;
   email: string;
-  role: 'PATIENT' | 'DOCTOR' | 'ADMIN';
+  role: 'PATIENT' | 'DOCTOR' | 'ADMIN' | 'CLINIC_ADMIN' | 'SUPER_ADMIN';
 }
 
 interface AuthContextType {
@@ -21,6 +21,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isDoctor: boolean;
   isAdmin: boolean;
+  isClinicAdmin: boolean;
+  isSuperAdmin: boolean;
   isPatient: boolean;
 }
 
@@ -38,6 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   // Configure axios defaults
   axios.defaults.baseURL = config.backendUri;
@@ -46,6 +49,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     checkAuthStatus();
   }, []);
+
+  // Redirect super admin to dashboard when authenticated
+  useEffect(() => {
+    if (!loading && user?.role === 'SUPER_ADMIN') {
+      if (pathname === '/' || pathname === '/login' || pathname === '/register') {
+        router.push('/admin/dashboard');
+      }
+    }
+  }, [loading, user, pathname, router]);
 
   const checkAuthStatus = async () => {
     try {
@@ -106,6 +118,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!user,
     isDoctor: user?.role === 'DOCTOR',
     isAdmin: user?.role === 'ADMIN',
+    isClinicAdmin: user?.role === 'CLINIC_ADMIN',
+    isSuperAdmin: user?.role === 'SUPER_ADMIN',
     isPatient: user?.role === 'PATIENT',
   };
 

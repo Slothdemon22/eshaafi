@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('token');
   
   // Public routes that don't require authentication
-  const publicRoutes = ['/login', '/register', '/doctor/apply', '/', '/doctors'];
+  const publicRoutes = ['/login', '/register', '/doctor/apply', '/clinic/apply', '/', '/doctors', '/clinics'];
   
   // Check if the current path is a public route
   if (publicRoutes.includes(pathname)) {
@@ -17,6 +17,20 @@ export function middleware(request: NextRequest) {
       // We'll let the client-side handle the redirect based on user role
       return NextResponse.next();
     }
+    return NextResponse.next();
+  }
+
+  // Public dynamic doctor profile routes (e.g., /doctors/123)
+  if (pathname.startsWith('/doctors/')) {
+    return NextResponse.next();
+  }
+  // Public clinics listing and clinic detail pages
+  if (pathname.startsWith('/clinics')) {
+    return NextResponse.next();
+  }
+
+  // Check for clinic-specific application routes (e.g., /clinic/123/apply)
+  if (pathname.match(/^\/clinic\/\d+\/apply$/)) {
     return NextResponse.next();
   }
   
