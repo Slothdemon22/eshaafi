@@ -1,11 +1,11 @@
 "use client";
 import { useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 
 const VideoCall = dynamic(() => import('@/components/VideoCall'), { ssr: false });
 
-const VideoCallPage = () => {
+const VideoCallContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const roomCode = searchParams.get('roomCode');
@@ -24,6 +24,14 @@ const VideoCallPage = () => {
     <div className="w-full h-screen">
       <VideoCall roomCode={roomCode} />
     </div>
+  );
+};
+
+const VideoCallPage = () => {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading video call...</div>}>
+      <VideoCallContent />
+    </Suspense>
   );
 };
 

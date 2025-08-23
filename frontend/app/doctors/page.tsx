@@ -18,6 +18,8 @@ interface Doctor {
   online?: boolean;
   education?: { degree: string; institution: string; year: string }[];
   workExperience?: { title: string; organization: string; years: string }[];
+  clinic?: { id: number; name: string; active?: boolean } | null;
+  active?: boolean;
 }
 
 interface Speciality {

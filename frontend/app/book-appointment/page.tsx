@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -55,7 +55,7 @@ const appointmentSchema = z.object({
 
 type AppointmentFormData = z.infer<typeof appointmentSchema>;
 
-const BookAppointmentPage: React.FC = () => {
+const BookAppointmentContent: React.FC = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [availableSlots, setAvailableSlots] = useState<AvailabilitySlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -514,6 +514,23 @@ const BookAppointmentPage: React.FC = () => {
         </motion.div>
       </div>
     </div>
+  );
+};
+
+const BookAppointmentPage: React.FC = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen gradient-bg py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="card p-8 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[#0E6BA8]" />
+            <p className="text-gray-600">Loading appointment booking...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <BookAppointmentContent />
+    </Suspense>
   );
 };
 

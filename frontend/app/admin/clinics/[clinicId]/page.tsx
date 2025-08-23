@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toaster';
 import { API_ENDPOINTS, buildApiUrl } from '@/lib/config';
-import { ArrowLeft, Shield, Building2, Stethoscope, Calendar, UserCheck } from 'lucide-react';
+import { ArrowLeft, Shield, Building2, Stethoscope, Calendar, UserCheck, Users } from 'lucide-react';
 
 interface ClinicDetails {
   id: number;
@@ -15,7 +15,10 @@ interface ClinicDetails {
   email: string;
   city?: string;
   country?: string;
-  admins?: { user: { id: number; name: string; email: string; role: string } }[];
+  admins?: { 
+    user: { id: number; name: string; email: string; role: string };
+    generatedPassword?: string;
+  }[];
   doctors?: { 
     id: number; 
     user: { id: number; name: string; email: string }; 
@@ -207,6 +210,56 @@ const AdminClinicDetailsPage: React.FC = () => {
                 </form>
               )}
             </motion.div>
+
+            {/* Clinic Admin Credentials Section */}
+            {clinic.admins && clinic.admins.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-hover p-6">
+                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-[#0E6BA8]" />
+                  Clinic Admin Credentials
+                </h2>
+                <div className="space-y-4">
+                  {clinic.admins.map((admin, index) => (
+                    <div key={admin.user.id} className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold text-[#1F2937] flex items-center gap-2">
+                            <Users className="w-4 h-4" />
+                            {admin.user.name}
+                          </h3>
+                          <p className="text-sm text-[#4B5563]">Role: {admin.user.role}</p>
+                        </div>
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
+                          Admin #{index + 1}
+                        </span>
+                      </div>
+                      
+                      <div className="bg-white p-3 rounded border">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="font-semibold text-[#1F2937]">Email:</span>
+                            <p className="text-[#0E6BA8] font-mono bg-gray-50 p-2 rounded mt-1">{admin.user.email}</p>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-[#1F2937]">Password:</span>
+                            <p className="text-[#0E6BA8] font-mono bg-gray-50 p-2 rounded mt-1">
+                              {admin.generatedPassword || 'Generated during approval'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                          <p className="text-xs text-yellow-800 font-medium">
+                            💡 <strong>Note:</strong> This admin can log in using the email and password above. 
+                            The password was generated during clinic approval and should be shared securely with the clinic admin.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
 
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-hover p-6">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2"><Stethoscope className="w-5 h-5" /> Doctors</h2>

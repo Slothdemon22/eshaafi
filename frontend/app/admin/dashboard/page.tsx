@@ -14,7 +14,8 @@ import {
   Activity,
   UserCheck,
   Clock,
-  Award
+  Award,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toaster';
@@ -135,6 +136,12 @@ const AdminDashboardPage: React.FC = () => {
                 <Stethoscope className="w-4 h-4" />
                 <span>Manage Doctors</span>
               </Link>
+              {isSuperAdmin && (
+                <Link href="/admin/clinics" className="btn-secondary flex items-center space-x-2">
+                  <Building2 className="w-4 h-4" />
+                  <span>Manage Clinics</span>
+                </Link>
+              )}
               <Link href="/admin/users" className="btn-secondary flex items-center space-x-2">
                 <Users className="w-4 h-4" />
                 <span>View Users</span>

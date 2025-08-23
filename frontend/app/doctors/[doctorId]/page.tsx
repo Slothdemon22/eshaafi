@@ -28,6 +28,8 @@ interface DoctorDetails {
   education: EducationEntry[];
   workExperience: WorkExperienceEntry[];
   online?: boolean;
+  clinic?: { id: number; name: string; active?: boolean } | null;
+  active?: boolean;
 }
 
 interface Review {
@@ -338,7 +340,10 @@ const DoctorProfilePage: React.FC = () => {
                   <h3 className="text-lg font-semibold text-gray-800">Overall Rating</h3>
                   <div className="text-right">
                     <div className="text-2xl font-bold text-gray-900">
-                      {((reviewSummary.avgBehaviour + reviewSummary.avgRecommendation) / 2).toFixed(1)}
+                      {reviewSummary.avgBehaviour && reviewSummary.avgRecommendation 
+                        ? ((reviewSummary.avgBehaviour + reviewSummary.avgRecommendation) / 2).toFixed(1)
+                        : '-'
+                      }
                     </div>
                     <div className="text-sm text-gray-600">out of 5</div>
                   </div>
@@ -349,8 +354,10 @@ const DoctorProfilePage: React.FC = () => {
                       <svg
                         key={star}
                         className={`w-5 h-5 ${
-                          star <= Math.round((reviewSummary.avgBehaviour + reviewSummary.avgRecommendation) / 2)
-                            ? 'text-yellow-400 fill-current'
+                          reviewSummary.avgBehaviour && reviewSummary.avgRecommendation
+                            ? star <= Math.round((reviewSummary.avgBehaviour + reviewSummary.avgRecommendation) / 2)
+                              ? 'text-yellow-400 fill-current'
+                              : 'text-gray-300'
                             : 'text-gray-300'
                         }`}
                         fill="currentColor"
@@ -376,8 +383,10 @@ const DoctorProfilePage: React.FC = () => {
                         <svg
                           key={star}
                           className={`w-4 h-4 ${
-                            star <= Math.round(reviewSummary.avgBehaviour)
-                              ? 'text-yellow-400 fill-current'
+                            reviewSummary.avgBehaviour
+                              ? star <= Math.round(reviewSummary.avgBehaviour)
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
                               : 'text-gray-300'
                           }`}
                           fill="currentColor"
@@ -388,7 +397,7 @@ const DoctorProfilePage: React.FC = () => {
                       ))}
                     </div>
                     <span className="text-sm font-semibold text-gray-700">
-                      {reviewSummary.avgBehaviour.toFixed(1)}/5
+                      {reviewSummary.avgBehaviour ? reviewSummary.avgBehaviour.toFixed(1) : '-'}/5
                     </span>
                   </div>
                 </div>
@@ -401,8 +410,10 @@ const DoctorProfilePage: React.FC = () => {
                         <svg
                           key={star}
                           className={`w-4 h-4 ${
-                            star <= Math.round(reviewSummary.avgRecommendation)
-                              ? 'text-yellow-400 fill-current'
+                            reviewSummary.avgRecommendation
+                              ? star <= Math.round(reviewSummary.avgRecommendation)
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
                               : 'text-gray-300'
                           }`}
                           fill="currentColor"
@@ -413,7 +424,7 @@ const DoctorProfilePage: React.FC = () => {
                       ))}
                     </div>
                     <span className="text-sm font-semibold text-gray-700">
-                      {reviewSummary.avgRecommendation.toFixed(1)}/5
+                      {reviewSummary.avgRecommendation ? reviewSummary.avgRecommendation.toFixed(1) : '-'}/5
                     </span>
                   </div>
                 </div>
