@@ -156,6 +156,28 @@ export const adminServiceGetClinics = async () => {
         },
         orderBy: { createdAt: 'desc' }
     });
+
+    // Add generated passwords to clinic admins
+    for (const clinic of clinics) {
+        if (clinic.admins && clinic.admins.length > 0) {
+            // Get the clinic application to retrieve generated passwords
+            const clinicApplication = await prisma.clinicApplication.findFirst({
+                where: { 
+                    name: clinic.name,
+                    status: 'APPROVED'
+                },
+                orderBy: { createdAt: 'desc' }
+            });
+
+            if (clinicApplication && clinicApplication.generatedPassword) {
+                clinic.admins = clinic.admins.map(admin => ({
+                    ...admin,
+                    generatedPassword: clinicApplication.generatedPassword
+                }));
+            }
+        }
+    }
+
     return clinics;
 }
 
@@ -204,6 +226,15 @@ export const adminServiceGetClinicDetails = async (clinicId) => {
     });
     if (!clinic) throw new Error('Clinic not found');
     
+    // Get the clinic application to retrieve generated passwords
+    const clinicApplication = await prisma.clinicApplication.findFirst({
+        where: { 
+            name: clinic.name,
+            status: 'APPROVED'
+        },
+        orderBy: { createdAt: 'desc' }
+    });
+    
     // Add review data for each doctor
     if (clinic.doctors && clinic.doctors.length > 0) {
         const doctorIds = clinic.doctors.map(d => d.id);
@@ -231,6 +262,14 @@ export const adminServiceGetClinicDetails = async (clinicId) => {
                 averageRating: stats && stats.count > 0 ? stats.totalRating / stats.count : 0
             };
         });
+    }
+    
+    // Add generated password to clinic admins if available
+    if (clinic.admins && clinic.admins.length > 0 && clinicApplication && clinicApplication.generatedPassword) {
+        clinic.admins = clinic.admins.map(admin => ({
+            ...admin,
+            generatedPassword: clinicApplication.generatedPassword
+        }));
     }
     
     return clinic;
