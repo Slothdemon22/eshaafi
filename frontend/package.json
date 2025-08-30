@@ -6,8 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "postinstall": "node patch-hms-virtual-background.js"
+    "lint": "next lint"
+  
   },
   "dependencies": {
     "@100mslive/hms-video-react": "^0.7.4",

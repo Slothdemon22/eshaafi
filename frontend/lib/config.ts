@@ -1,6 +1,6 @@
 // Environment configuration
 export const config = {
-  backendUri: process.env.NEXT_PUBLIC_BACKEND_URI || 'http://localhost:5000',
+  backendUri: "http://16.176.230.109:5000",
 } as const;
 
 // API endpoints
