@@ -15,6 +15,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toaster';
 import Link from 'next/link';
+import { buildApiUrl, API_ENDPOINTS } from '@/lib/config';
 
 interface TimeSlot {
   id?: number;
@@ -94,7 +95,7 @@ const DoctorAvailabilityPage: React.FC = () => {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:5000/api/doctor/availability?date=${selectedDate}`, {
+      const response = await fetch(buildApiUrl(`${API_ENDPOINTS.doctorAvailability}?date=${selectedDate}`), {
         credentials: 'include'
       });
 
@@ -157,7 +158,7 @@ const DoctorAvailabilityPage: React.FC = () => {
         location: slot.location || ''
       }));
 
-      const response = await fetch('http://localhost:5000/api/doctor/availability/slots', {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.doctorSlots), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -220,7 +221,7 @@ const DoctorAvailabilityPage: React.FC = () => {
     }
     try {
       setIsAddingCustom(true);
-      const response = await fetch('http://localhost:5000/api/doctor/addAvailability', {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.addAvailability), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

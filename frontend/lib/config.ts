@@ -45,6 +45,8 @@ export const API_ENDPOINTS = {
     `/api/doctor/availability/bookings?doctorId=${doctorId}&date=${date}`,
   doctorSpecialities: '/api/doctor/specialities',
   doctorSpecialitiesCounts: '/api/doctor/specialities/counts',
+  doctorStatus: '/api/doctor/status',
+  doctorStatusById: (doctorId: string | number) => `/api/doctor/status/${doctorId}`,
   
   // Booking endpoints
   bookAppointment: '/api/bookings/book',

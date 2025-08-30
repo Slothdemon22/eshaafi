@@ -99,7 +99,7 @@ const DoctorAppointmentsPage: React.FC = () => {
         setIsLoading(true);
       }
       
-      const response = await fetch('http://localhost:5000/api/doctor/appointments', {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.doctorAppointments), {
         credentials: 'include'
       });
 
@@ -175,7 +175,7 @@ const DoctorAppointmentsPage: React.FC = () => {
       return;
     }
     try {
-      const response = await fetch('http://localhost:5000/api/bookings/changeBookingStatus', {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.changeBookingStatus), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -231,7 +231,7 @@ const DoctorAppointmentsPage: React.FC = () => {
       return;
     }
     try {
-      const response = await fetch('http://localhost:5000/api/bookings/changeBookingStatus', {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.changeBookingStatus), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -274,8 +274,8 @@ const DoctorAppointmentsPage: React.FC = () => {
   const handlePrescriptionSubmit = async (appointmentId: string) => {
     try {
       const url = editingPrescription 
-        ? `http://localhost:5000/api/bookings/prescription/${appointmentId}`
-        : 'http://localhost:5000/api/bookings/prescription';
+        ? buildApiUrl(API_ENDPOINTS.prescriptionById(appointmentId))
+        : buildApiUrl(API_ENDPOINTS.prescription);
       
       const method = editingPrescription ? 'PUT' : 'POST';
       

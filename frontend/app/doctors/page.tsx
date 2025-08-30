@@ -75,7 +75,7 @@ const PublicDoctorsPage: React.FC = () => {
       if (doctors.length === 0) return;
       const updated = await Promise.all(doctors.map(async (doc) => {
         try {
-          const res = await fetch(buildApiUrl(`/api/doctor/status/${doc.id}`));
+          const res = await fetch(buildApiUrl(API_ENDPOINTS.doctorStatusById(doc.id)));
           if (res.ok) {
             const data = await res.json();
             return { ...doc, online: data.online };

@@ -5,6 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import ProfileRedirect from '../../../components/ProfileRedirect';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { buildApiUrl, API_ENDPOINTS } from '@/lib/config';
 import { 
   User, 
   Mail, 
@@ -96,7 +97,7 @@ const PatientProfile = () => {
 
   const fetchAppointments = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/users/appointments', {
+      const response = await axios.get(buildApiUrl(API_ENDPOINTS.userAppointments), {
         withCredentials: true
       });
       setAppointments(response.data.appointments || []);
@@ -126,7 +127,7 @@ const PatientProfile = () => {
         if (!doctorId) continue;
         if (reviewsObj[doctorId]) continue;
         try {
-          const res = await axios.get(`/api/doctor/${doctorId}/reviews`, { withCredentials: true });
+          const res = await axios.get(buildApiUrl(API_ENDPOINTS.doctorReviews(doctorId)), { withCredentials: true });
           reviewsObj[doctorId] = res.data.reviews || [];
         } catch {}
       }
@@ -152,7 +153,7 @@ const PatientProfile = () => {
   const handleProfileUpdate = async () => {
     try {
       setUpdating(true);
-      const response = await axios.put('http://localhost:5000/api/users/profile', formData, {
+      const response = await axios.put(buildApiUrl(API_ENDPOINTS.userProfile), formData, {
         withCredentials: true
       });
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
@@ -182,7 +183,7 @@ const PatientProfile = () => {
 
     try {
       setUpdating(true);
-      await axios.put('http://localhost:5000/api/users/change-password', {
+      await axios.put(buildApiUrl(API_ENDPOINTS.changePassword), {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
       }, {
@@ -234,7 +235,7 @@ const PatientProfile = () => {
     if (!doctorId) return;
     setSubmittingReview(true);
     try {
-      await axios.post(`/api/doctor/${doctorId}/reviews`, {
+      await axios.post(buildApiUrl(API_ENDPOINTS.createReview(doctorId)), {
         appointmentId: appointment.id,
         behaviourRating: reviewForm.behaviourRating,
         recommendationRating: reviewForm.recommendationRating,
@@ -243,7 +244,7 @@ const PatientProfile = () => {
       setShowReviewModal(null);
       setReviewForm({ behaviourRating: 0, recommendationRating: 0, reviewText: '' });
       // Refetch reviews
-      const res = await axios.get(`/api/doctor/${doctorId}/reviews`, { withCredentials: true });
+      const res = await axios.get(buildApiUrl(API_ENDPOINTS.doctorReviews(doctorId)), { withCredentials: true });
       setDoctorReviews(prev => ({ ...prev, [doctorId]: res.data.reviews || [] }));
       setMessage({ type: 'success', text: 'Review submitted successfully!' });
     } catch (error: any) {

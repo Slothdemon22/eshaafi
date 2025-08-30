@@ -114,7 +114,7 @@ const BookAppointmentContent: React.FC = () => {
     const fetchStatus = async () => {
       if (!selectedDoctor) return;
       try {
-        const res = await fetch(buildApiUrl(`/api/doctor/status/${selectedDoctor.id}`));
+        const res = await fetch(buildApiUrl(API_ENDPOINTS.doctorStatusById(selectedDoctor.id)));
         if (res.ok) {
           const data = await res.json();
           setSelectedDoctor(prev => prev ? { ...prev, online: data.online } : prev);

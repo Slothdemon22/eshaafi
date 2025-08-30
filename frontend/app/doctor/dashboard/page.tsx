@@ -23,8 +23,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toaster';
 import Link from 'next/link';
-import { formatTimeAMPM } from '@/lib/config';
-import { buildApiUrl } from '@/lib/config';
+import { formatTimeAMPM, buildApiUrl, API_ENDPOINTS } from '@/lib/config';
 
 interface Appointment {
   id: string;
@@ -76,10 +75,10 @@ const DoctorDashboardPage: React.FC = () => {
       
       // Fetch appointments and review summary in parallel
       const [appointmentsResponse, reviewSummaryResponse] = await Promise.all([
-        fetch('http://localhost:5000/api/doctor/appointments', {
+        fetch(buildApiUrl(API_ENDPOINTS.doctorAppointments), {
           credentials: 'include'
         }),
-        fetch('http://localhost:5000/api/doctor/reviews/summary', {
+        fetch(buildApiUrl(API_ENDPOINTS.doctorOwnReviewSummary), {
           credentials: 'include'
         })
       ]);
@@ -172,7 +171,7 @@ const DoctorDashboardPage: React.FC = () => {
   // Fetch online status on mount
   useEffect(() => {
     if (user && isDoctor) {
-      fetch(buildApiUrl(`/api/doctor/status/${user.id}`))
+      fetch(buildApiUrl(API_ENDPOINTS.doctorStatusById(user.id)))
         .then(res => res.json())
         .then(data => setOnline(data.online))
         .catch(() => setOnline(null));
@@ -182,13 +181,14 @@ const DoctorDashboardPage: React.FC = () => {
   const handleStatusChange = async (appointmentId: string, newStatus: Appointment['status']) => {
     try {
       // API call to change appointment status
-      const response = await fetch('/api/bookings/changeBookingStatus', {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.changeBookingStatus), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
-          appointmentId,
+          id: appointmentId,
           status: newStatus
         }),
       });
@@ -223,7 +223,7 @@ const DoctorDashboardPage: React.FC = () => {
     if (online === null) return;
     setIsStatusLoading(true);
     try {
-      const res = await fetch(buildApiUrl('/api/doctor/status'), {
+      const res = await fetch(buildApiUrl(API_ENDPOINTS.doctorStatus), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
