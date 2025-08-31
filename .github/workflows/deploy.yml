@@ -34,17 +34,13 @@ jobs:
         run: |
           docker login -u ${{secrets.DOCKERHUB_USERNAME}} -p ${{secrets.DOCKERHUB_TOKEN}}
 
-
       - name: Tag & Push Docker image
         run: |
-
           docker tag ${{ secrets.IMAGE_NAME }}-frontend:$COMMIT_SHA ${{ secrets.IMAGE_NAME }}-frontend:stage-$COMMIT_SHA
           docker push ${{ secrets.IMAGE_NAME }}-frontend:stage-$COMMIT_SHA
-
           
           docker tag ${{ secrets.IMAGE_NAME }}-backend:$COMMIT_SHA ${{ secrets.IMAGE_NAME }}-backend:stage-$COMMIT_SHA
           docker push ${{ secrets.IMAGE_NAME }}-backend:stage-$COMMIT_SHA
-
 
       - name: List Docker images
         run: docker images
@@ -56,8 +52,11 @@ jobs:
           echo "${{ secrets.SSH_KEY }}" > ~/ssh_key
           chmod 600 ~/ssh_key
 
-          # Connect and run remote commands
-          ssh -i ~/ssh_key -o StrictHostKeyChecking=no ${{secrets.SERVER_USER}}@${{secrets.SERVER_HOST}}"
-          
-          "
-          echo "ssh successfully done (:"
+          # SSH into server and run commands
+          ssh -i ~/ssh_key -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            docker compose down
+            docker system prune -f
+            docker compose up -d
+          EOF
+
+          echo "SSH deployment successfully done! (:"
