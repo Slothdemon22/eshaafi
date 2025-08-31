@@ -24,6 +24,9 @@ jobs:
         run: |
           cd frontend
           docker build -t ${{ secrets.IMAGE_NAME }}-frontend:$COMMIT_SHA .
+          cd backend
+          docker build -t ${{ secrets.IMAGE_NAME }}-backend:$COMMIT_SHA .
+
           echo "Image build complete ✅"
 
       - name: Log in to Docker Hub using token
@@ -34,7 +37,10 @@ jobs:
       - name: Tag & Push Docker image
         run: |
           docker tag ${{ secrets.IMAGE_NAME }}-frontend:$COMMIT_SHA ${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}-frontend:$COMMIT_SHA
-          docker push ${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}-frontend:$COMMIT_SHA
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}-frontend:stage-$COMMIT_SHA
+
+          docker tag ${{ secrets.IMAGE_NAME }}-backend:$COMMIT_SHA ${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}-frontend:$COMMIT_SHA
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}-backend:stage-$COMMIT_SHA
 
       - name: List Docker images
         run: docker images
