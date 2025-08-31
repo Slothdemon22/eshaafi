@@ -44,10 +44,27 @@ const LoginPage: React.FC = () => {
       });
       router.push('/');
     } catch (error: any) {
+      // Handle specific error messages from backend
+      let errorMessage = 'Please check your credentials and try again.';
+      
+      if (error.message) {
+        if (error.message.includes('Invalid email or password')) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (error.message.includes('Email and password are required')) {
+          errorMessage = 'Please enter both email and password.';
+        } else if (error.message.includes('Please enter a valid email address')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (error.message.includes('Password is required')) {
+          errorMessage = 'Please enter your password.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       addToast({
         type: 'error',
         title: 'Login Failed',
-        message: error.message || 'Please check your credentials and try again.',
+        message: errorMessage,
       });
     } finally {
       setIsLoading(false);

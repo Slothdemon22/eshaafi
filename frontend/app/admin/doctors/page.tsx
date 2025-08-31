@@ -15,6 +15,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_ENDPOINTS, buildApiUrl } from '@/lib/config';
 import { useToast } from '@/components/ui/Toaster';
 import Link from 'next/link';
 
@@ -37,7 +38,7 @@ const AdminDoctorsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { user, isAuthenticated, isAdmin } = useAuth();
+  const { user, isAuthenticated, isAdmin, isSuperAdmin } = useAuth();
   const { addToast } = useToast();
 
   const fetchApplications = async (isRefresh = false) => {
@@ -48,7 +49,7 @@ const AdminDoctorsPage: React.FC = () => {
         setIsLoading(true);
       }
 
-      const response = await fetch('http://localhost:5000/api/admin/applications', { credentials: 'include' });
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.adminApplications), { credentials: 'include' });
 
       if (response.ok) {
         const data = await response.json();
@@ -76,14 +77,14 @@ const AdminDoctorsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isAuthenticated && isAdmin) {
+    if (isAuthenticated && (isAdmin || isSuperAdmin)) {
       fetchApplications();
     }
-  }, [isAuthenticated, isAdmin]);
+  }, [isAuthenticated, isAdmin, isSuperAdmin]);
 
   const approve = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/applications/${id}/approve`, { method: 'POST', credentials: 'include' });
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.approveApplication(String(id))), { method: 'POST', credentials: 'include' });
 
       if (response.ok) {
         const data = await response.json();
@@ -107,7 +108,7 @@ const AdminDoctorsPage: React.FC = () => {
 
   const reject = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/applications/${id}/reject`, { method: 'POST', credentials: 'include' });
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.rejectApplication(String(id))), { method: 'POST', credentials: 'include' });
       if (response.ok) {
         setApplications(prev => prev.map(a => a.id === id ? { ...a, status: 'REJECTED' } : a));
         addToast({ type: 'success', title: 'Application Rejected', message: 'The application has been rejected.' });
@@ -140,7 +141,7 @@ const AdminDoctorsPage: React.FC = () => {
     return matchesFilter && matchesSearch;
   });
 
-  if (!isAuthenticated || !isAdmin) {
+  if (!isAuthenticated || !(isAdmin || isSuperAdmin)) {
     return (
       <div className="min-h-screen flex items-center justify-center medical-gradient">
         <div className="text-center">

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@mediapipe/selfie_segmentation"],
   images: {
     remotePatterns: [
       {
@@ -10,7 +11,14 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+    unoptimized: true, // Disable image optimization for external images
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
   },
+  experimental: {
+    optimizeCss: true,
+  },
+  output: 'standalone',
 };
 
 export default nextConfig;

@@ -10,6 +10,15 @@ export const authServiceRegister = async (name ,email,password)=>
 {
     console.log("Auth Service Register called with:", { name, email });
 
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (existingUser) {
+      throw new Error('Email already registered');
+    }
+
     const user = await prisma.user.create({
       data: {
         name,
@@ -27,6 +36,9 @@ export  const authServiceLogin = async (email,password) => {
   console.log("Auth Service Login called with email:", email);
   
   // Hardcoded admin credentials
+  if (process.env.SUPER_ADMIN_EMAIL && process.env.SUPER_ADMIN_PASSWORD && email === process.env.SUPER_ADMIN_EMAIL && password === process.env.SUPER_ADMIN_PASSWORD) {
+    return { id: 0, name: 'Super Admin', email, role: 'SUPER_ADMIN' };
+  }
   if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD && email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
     return { id: 0, name: 'Admin', email, role: 'ADMIN' };
   }
@@ -38,12 +50,12 @@ export  const authServiceLogin = async (email,password) => {
   
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('Invalid email or password');
   }
   
 
   const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) throw new Error('Invalid credentials');
+  if (!isMatch) throw new Error('Invalid email or password');
 
   return user;
 }
@@ -83,11 +95,55 @@ export const getAppointmentsServiceUser = async (userId) => {
           user: true
         }
       },
-      prescription: true
+      prescription: true,
+      followUpOf: {
+        include: {
+          doctor: {
+            include: {
+              user: true
+            }
+          }
+        }
+      },
+      followUps: {
+        include: {
+          doctor: {
+            include: {
+              user: true
+            }
+          }
+        }
+      },
+      review: true
     }
   });
   
-  console.log("Appointments fetched for user:", appointments);
+  // For each appointment, fetch the corresponding slot to get duration
+  const appointmentsWithDuration = await Promise.all(
+    appointments.map(async (apt) => {
+      // Extract date, startTime from booking
+      const date = apt.dateTime;
+      const doctorId = apt.doctorId;
+      // Get time string in HH:mm format
+      const startTime = new Date(date).toTimeString().slice(0,5);
+      // Find the slot for this doctor, date, and startTime
+      const slot = await prisma.availabilitySlot.findFirst({
+        where: {
+          doctorId: doctorId,
+          date: {
+            equals: new Date(date.toISOString().split('T')[0])
+          },
+          startTime: startTime
+        }
+      });
+      return {
+        ...apt,
+        slotDuration: slot ? slot.duration : null
+      };
+    })
+  );
   
-  return appointments;
+  console.log("Appointments fetched for user (with duration):", appointmentsWithDuration);
+  
+  return appointmentsWithDuration;
 }

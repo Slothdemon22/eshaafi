@@ -2,12 +2,13 @@ import express from 'express';
 import { registerUser, getUsers,loginUser,GetBookingUser ,getAppointmentsUser, getUserProfile, updateUserProfile, changePassword, logoutUser, editUser, deleteUser } from '../controllers/userController.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { adminMiddleware } from '../middlewares/adminMiddleware.js';
+import { validateRegistration, validateLogin } from '../middlewares/validationMiddleware.js';
 
 const userRouter = express.Router();
 
-userRouter.post('/register', registerUser);
+userRouter.post('/register', validateRegistration, registerUser);
 userRouter.get('/getUsers', adminMiddleware, getUsers);
-userRouter.post('/login', loginUser);
+userRouter.post('/login', validateLogin, loginUser);
 userRouter.post('/logout', logoutUser);
 userRouter.get('/profile', authMiddleware, getUserProfile);
 userRouter.put('/profile', authMiddleware, updateUserProfile);

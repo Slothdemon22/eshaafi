@@ -5,6 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import ProfileRedirect from '../../../components/ProfileRedirect';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { buildApiUrl, API_ENDPOINTS } from '@/lib/config';
 import { 
   User, 
   Mail, 
@@ -18,8 +19,10 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Star
 } from 'lucide-react';
+import { formatTimeAMPM } from '@/lib/config';
 
 interface Appointment {
   id: number;
@@ -36,6 +39,17 @@ interface Appointment {
   };
 }
 
+interface Review {
+  id: number;
+  doctorId: number;
+  patientId: number;
+  appointmentId: number;
+  behaviourRating: number;
+  recommendationRating: number;
+  reviewText?: string;
+  createdAt: string;
+}
+
 const PatientProfile = () => {
   const { user, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -44,6 +58,14 @@ const PatientProfile = () => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showReviewModal, setShowReviewModal] = useState<number | null>(null);
+  const [reviewForm, setReviewForm] = useState({
+    behaviourRating: 0,
+    recommendationRating: 0,
+    reviewText: ''
+  });
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [doctorReviews, setDoctorReviews] = useState<{ [doctorId: number]: Review[] }>({});
 
   // Form states
   const [formData, setFormData] = useState({
@@ -75,7 +97,7 @@ const PatientProfile = () => {
 
   const fetchAppointments = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/users/appointments', {
+      const response = await axios.get(buildApiUrl(API_ENDPOINTS.userAppointments), {
         withCredentials: true
       });
       setAppointments(response.data.appointments || []);
@@ -85,6 +107,34 @@ const PatientProfile = () => {
       setLoading(false);
     }
   };
+
+  // Fetch reviews for all doctors in appointments
+  useEffect(() => {
+    const fetchReviews = async () => {
+      const uniqueDoctorIds = Array.from(new Set(appointments.map(a => a.doctor.user.name + a.doctor.location)));
+      const doctorIdMap: { [key: string]: number } = {};
+      // You may need to map doctor info to doctorId if available
+      // For now, skip if doctorId is not available
+      // This is a placeholder for real doctorId mapping
+      // If you have doctorId in appointment, use that directly
+      // Otherwise, fetch reviews only for appointments with doctorId
+      // For demo, skip mapping
+      // Fetch reviews for each doctor
+      const reviewsObj: { [doctorId: number]: Review[] } = {};
+      for (const appointment of appointments) {
+        // Assume appointment.doctor.id exists (if not, adjust accordingly)
+        const doctorId = (appointment as any).doctorId || (appointment as any).doctor?.id;
+        if (!doctorId) continue;
+        if (reviewsObj[doctorId]) continue;
+        try {
+          const res = await axios.get(buildApiUrl(API_ENDPOINTS.doctorReviews(doctorId)), { withCredentials: true });
+          reviewsObj[doctorId] = res.data.reviews || [];
+        } catch {}
+      }
+      setDoctorReviews(reviewsObj);
+    };
+    if (appointments.length > 0) fetchReviews();
+  }, [appointments]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -103,7 +153,7 @@ const PatientProfile = () => {
   const handleProfileUpdate = async () => {
     try {
       setUpdating(true);
-      const response = await axios.put('http://localhost:5000/api/users/profile', formData, {
+      const response = await axios.put(buildApiUrl(API_ENDPOINTS.userProfile), formData, {
         withCredentials: true
       });
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
@@ -133,7 +183,7 @@ const PatientProfile = () => {
 
     try {
       setUpdating(true);
-      await axios.put('http://localhost:5000/api/users/change-password', {
+      await axios.put(buildApiUrl(API_ENDPOINTS.changePassword), {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
       }, {
@@ -167,6 +217,40 @@ const PatientProfile = () => {
       case 'REJECTED': return 'text-red-600 bg-red-100';
       case 'COMPLETED': return 'text-blue-600 bg-blue-100';
       default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  // Helper to check if appointment is reviewed
+  const isReviewed = (appointment: Appointment) => {
+    const doctorId = (appointment as any).doctorId || (appointment as any).doctor?.id;
+    if (!doctorId) return false;
+    const reviews = doctorReviews[doctorId] || [];
+    // Check if review exists for this appointment and patient
+    return reviews.some(r => r.appointmentId === appointment.id && r.patientId === user?.id);
+  };
+
+  // Review form submit handler
+  const handleReviewSubmit = async (appointment: Appointment) => {
+    const doctorId = (appointment as any).doctorId || (appointment as any).doctor?.id;
+    if (!doctorId) return;
+    setSubmittingReview(true);
+    try {
+      await axios.post(buildApiUrl(API_ENDPOINTS.createReview(doctorId)), {
+        appointmentId: appointment.id,
+        behaviourRating: reviewForm.behaviourRating,
+        recommendationRating: reviewForm.recommendationRating,
+        reviewText: reviewForm.reviewText
+      }, { withCredentials: true });
+      setShowReviewModal(null);
+      setReviewForm({ behaviourRating: 0, recommendationRating: 0, reviewText: '' });
+      // Refetch reviews
+      const res = await axios.get(buildApiUrl(API_ENDPOINTS.doctorReviews(doctorId)), { withCredentials: true });
+      setDoctorReviews(prev => ({ ...prev, [doctorId]: res.data.reviews || [] }));
+      setMessage({ type: 'success', text: 'Review submitted successfully!' });
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to submit review' });
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -445,7 +529,11 @@ const PatientProfile = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center text-gray-600">
                           <Calendar className="w-4 h-4 mr-2" />
-                          {formatDateTime(appointment.dateTime)}
+                          {new Date(appointment.dateTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+                        <div className="flex items-center text-gray-600">
+                          <Clock className="w-4 h-4 mr-2" />
+                          {formatTimeAMPM(new Date(appointment.dateTime))}
                         </div>
                         <div className="flex items-center text-gray-600">
                           <MapPin className="w-4 h-4 mr-2" />
@@ -466,6 +554,78 @@ const PatientProfile = () => {
                           <p className="text-sm text-gray-600">
                             <span className="font-medium">Symptoms:</span> {appointment.symptoms}
                           </p>
+                        </div>
+                      )}
+                      {/* Review Button for completed appointments */}
+                      {appointment.status === 'COMPLETED' && !isReviewed(appointment) && (
+                        <button
+                          className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+                          onClick={() => setShowReviewModal(appointment.id)}
+                        >
+                          Leave a Review
+                        </button>
+                      )}
+                      {/* Review Modal */}
+                      {showReviewModal === appointment.id && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+                            <h3 className="text-lg font-semibold mb-4 text-gray-900">Leave a Review</h3>
+                            <div className="mb-3">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Behaviour Rating</label>
+                              <div className="flex gap-1">
+                                {[1,2,3,4,5].map(star => (
+                                  <button
+                                    key={star}
+                                    type="button"
+                                    className={star <= reviewForm.behaviourRating ? 'text-yellow-400' : 'text-gray-300'}
+                                    onClick={() => setReviewForm(f => ({ ...f, behaviourRating: star }))}
+                                  >
+                                    <Star className="w-6 h-6" fill={star <= reviewForm.behaviourRating ? '#facc15' : 'none'} />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="mb-3">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Recommendation Rating</label>
+                              <div className="flex gap-1">
+                                {[1,2,3,4,5].map(star => (
+                                  <button
+                                    key={star}
+                                    type="button"
+                                    className={star <= reviewForm.recommendationRating ? 'text-yellow-400' : 'text-gray-300'}
+                                    onClick={() => setReviewForm(f => ({ ...f, recommendationRating: star }))}
+                                  >
+                                    <Star className="w-6 h-6" fill={star <= reviewForm.recommendationRating ? '#facc15' : 'none'} />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="mb-3">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Review (optional)</label>
+                              <textarea
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                rows={3}
+                                value={reviewForm.reviewText}
+                                onChange={e => setReviewForm(f => ({ ...f, reviewText: e.target.value }))}
+                              />
+                            </div>
+                            <div className="flex justify-end gap-2 mt-4">
+                              <button
+                                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                                onClick={() => setShowReviewModal(null)}
+                                disabled={submittingReview}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+                                onClick={() => handleReviewSubmit(appointment)}
+                                disabled={submittingReview || reviewForm.behaviourRating === 0 || reviewForm.recommendationRating === 0}
+                              >
+                                {submittingReview ? 'Submitting...' : 'Submit Review'}
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>

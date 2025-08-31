@@ -16,6 +16,8 @@ enum Role {
   PATIENT
   DOCTOR
   ADMIN
+  CLINIC_ADMIN
+  SUPER_ADMIN
 }
 
 model User {
@@ -27,6 +29,8 @@ model User {
 
   doctor   Doctor?
   bookings Booking[] @relation("PatientBookings")
+  reviews  Review[]
+  clinicAdmins ClinicAdmin[]
 }
 
 enum Speciality {
@@ -59,6 +63,13 @@ model Doctor {
   user       User              @relation(fields: [userId], references: [id])
   bookings   Booking[]         @relation("DoctorBookings")
   slots      AvailabilitySlot[] // Doctor's available time slots
+  online     Boolean           @default(false) 
+  active     Boolean           @default(true)
+  education  Json              @default("[]") 
+  workExperience Json?         // Array of work experience entries
+  reviews    Review[]
+  clinicId   Int?
+  clinic     Clinic?           @relation(fields: [clinicId], references: [id])
 }
 
 model AvailabilitySlot {
@@ -70,6 +81,7 @@ model AvailabilitySlot {
   endTime     String    // e.g., "09:30"
   duration    Int       // Duration in minutes (e.g., 30 or 60)
   location    String?   // Location for this slot (optional)
+  custom      Boolean   @default(false) // Custom slot flag
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -83,6 +95,11 @@ enum BookingStatus {
   COMPLETED
 }
 
+enum AppointmentType {
+  VIRTUAL
+  PHYSICAL
+}
+
 model Booking {
   id        Int           @id @default(autoincrement())
   dateTime  DateTime
@@ -92,10 +109,17 @@ model Booking {
   reason    String?
   symptoms  String?
   rejectionReason String? // Added field for doctor's rejection reason
+  type      AppointmentType @default(PHYSICAL)
+  videoRoomId String? // 100ms room ID for virtual appointments
+  // Follow-up relation
+  followUpOfId Int?
+  followUpOf   Booking?      @relation("BookingFollowUp", fields: [followUpOfId], references: [id])
+  followUps    Booking[]     @relation("BookingFollowUp")
 
   doctor    Doctor        @relation("DoctorBookings", fields: [doctorId], references: [id])
   patient   User          @relation("PatientBookings", fields: [patientId], references: [id])
   prescription Prescription?
+  review    Review?
 }
 
 model Prescription {
@@ -117,17 +141,91 @@ enum ApplicationStatus {
   REJECTED
 }
 
-model DoctorApplication {
-  id                Int                @id @default(autoincrement())
-  name              String
-  email             String
-  phone             String?
-  location          String
-  specialty         Speciality
-  experienceYears   Int?
-  credentials       String?
-  status            ApplicationStatus  @default(PENDING)
+   model DoctorApplication {
+     id                Int                @id @default(autoincrement())
+     name              String
+     email             String
+     phone             String?
+     location          String
+     specialty         Speciality
+     experienceYears   Int?
+     credentials       String?
+     education         Json             
+     workExperience    Json?              
+     status            ApplicationStatus  @default(PENDING)
+     generatedPassword String?
+     createdAt         DateTime           @default(now())
+     updatedAt         DateTime           @updatedAt
+     clinicId          Int?
+     clinic            Clinic?            @relation(fields: [clinicId], references: [id])
+   }
+
+model Review {
+  id                  Int       @id @default(autoincrement())
+  doctorId            Int
+  patientId           Int
+  appointmentId       Int       @unique
+  behaviourRating     Int       // 1-5
+  recommendationRating Int      // 1-5
+  reviewText          String?
+  createdAt           DateTime  @default(now())
+
+  doctor    Doctor    @relation(fields: [doctorId], references: [id])
+  patient   User      @relation(fields: [patientId], references: [id])
+  appointment Booking @relation(fields: [appointmentId], references: [id])
+
+  @@unique([patientId, appointmentId]) // Only one review per appointment per patient
+}
+
+// Clinic related models
+
+model ClinicApplication {
+  id          Int               @id @default(autoincrement())
+  name        String
+  email       String
+  phone       String?
+  addressLine1 String
+  addressLine2 String?
+  city        String
+  state       String?
+  country     String
+  zip         String?
+  website     String?
+  description String?
+  status      ApplicationStatus @default(PENDING)
   generatedPassword String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model Clinic {
+  id          Int           @id @default(autoincrement())
+  name        String
+  email       String        @unique
+  phone       String?
+  addressLine1 String
+  addressLine2 String?
+  city        String
+  state       String?
+  country     String
+  zip         String?
+  website     String?
+  logoUrl     String?
+  description String?
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  admins      ClinicAdmin[]
+  doctors     Doctor[]
+  doctorApplications DoctorApplication[]
+}
+
+model ClinicAdmin {
+  id        Int    @id @default(autoincrement())
+  clinicId  Int
+  userId    Int    @unique
+
+  clinic    Clinic @relation(fields: [clinicId], references: [id])
+  user      User   @relation(fields: [userId], references: [id])
 }

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { API_ENDPOINTS, buildApiUrl } from '@/lib/config';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
@@ -49,12 +50,34 @@ const RegisterPage: React.FC = () => {
         title: 'Registration Successful',
         message: 'Welcome to Eshaafi! Your account has been created.',
       });
-      router.push('/');
+      
+      // AuthContext will automatically redirect to appropriate dashboard
     } catch (error: any) {
+      // Handle specific error messages from backend
+      let errorMessage = 'Please try again with different credentials.';
+      
+      if (error.message) {
+        if (error.message.includes('Email already registered')) {
+          errorMessage = 'This email is already registered. Please use a different email or try logging in.';
+        } else if (error.message.includes('Name, email, and password are required')) {
+          errorMessage = 'Please fill in all required fields.';
+        } else if (error.message.includes('Name must be at least 2 characters long')) {
+          errorMessage = 'Name must be at least 2 characters long.';
+        } else if (error.message.includes('Please enter a valid email address')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (error.message.includes('Password must be at least 6 characters long')) {
+          errorMessage = 'Password must be at least 6 characters long.';
+        } else if (error.message.includes('Invalid data provided')) {
+          errorMessage = 'Please check your input and try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       addToast({
         type: 'error',
         title: 'Registration Failed',
-        message: error.message || 'Please try again with different credentials.',
+        message: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -100,7 +123,10 @@ const RegisterPage: React.FC = () => {
             <div className="text-sm text-[#4B5563] bg-[#F0F9FF] p-4 rounded-lg border border-[#0E6BA8]/20">
               <div className="flex items-center space-x-2">
                 <UserCheck className="w-4 h-4 text-[#0E6BA8]" />
-                <span>You are creating a patient account. Doctors should apply using the doctor application form.</span>
+                <span>
+                  You are creating a patient account. Doctors should apply using the doctor application form. Clinics can{' '}
+                  <Link href="/clinic/apply" className="text-[#0E6BA8] underline">apply here</Link>.
+                </span>
               </div>
             </div>
 

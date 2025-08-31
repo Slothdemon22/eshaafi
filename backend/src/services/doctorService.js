@@ -15,7 +15,7 @@ export const getProfileServiceDoctor= async (id) => {
     }
 };
 
-export const addAvailabilityService = async (doctorId, date, startTime, endTime, duration, location) => {
+export const addAvailabilityService = async (doctorId, date, startTime, endTime, duration, location, custom = false) => {
     try {
         const availability = await prisma.availabilitySlot.create({
             data: {
@@ -24,7 +24,8 @@ export const addAvailabilityService = async (doctorId, date, startTime, endTime,
                 startTime: startTime,
                 endTime: endTime,
                 duration: duration,
-                location: location || null
+                location: location || null,
+                custom: custom
             },
         });
         return availability;
@@ -69,7 +70,6 @@ export const getDoctorAvailabilityWithBookings = async (doctorId, date) => {
                 const bookingTimeString = bookingTime.toTimeString().slice(0, 5);
                 return bookingTimeString === slot.startTime;
             });
-            
             return {
                 id: slot.id,
                 startTime: slot.startTime,
@@ -77,7 +77,8 @@ export const getDoctorAvailabilityWithBookings = async (doctorId, date) => {
                 duration: slot.duration,
                 isBooked,
                 date: slot.date,
-                location: slot.location || null
+                location: slot.location || null,
+                custom: slot.custom // include custom flag
             };
         });
 
@@ -99,7 +100,8 @@ export const getAllDoctorsWithAvailability = async () => {
                         { date: 'asc' },
                         { startTime: 'asc' }
                     ]
-                }
+                },
+                clinic: true
             }
         });
 
@@ -109,7 +111,11 @@ export const getAllDoctorsWithAvailability = async () => {
             email: doctor.user.email,
             specialty: doctor.specialty,
             location: doctor.location,
-            availability: doctor.slots
+            availability: doctor.slots,
+            clinicId: doctor.clinicId || null,
+            // Treat missing active column as true to avoid breaking older DBs
+            active: typeof doctor.active === 'boolean' ? doctor.active : true,
+            clinicActive: doctor.clinic ? (typeof doctor.clinic.active === 'boolean' ? doctor.clinic.active : true) : true
         }));
     } catch (error) {
         console.error("Error fetching doctors:", error);
@@ -130,4 +136,53 @@ export const deleteAvailabilitySlotService = async (slotId, doctorId) => {
         console.error("Error deleting availability slot:", error);
         throw new Error("Could not delete availability slot");
     }
+};
+
+export const createReviewService = async ({ doctorId, patientId, appointmentId, behaviourRating, recommendationRating, reviewText }) => {
+  // Check if appointment exists, is completed, and belongs to patient and doctor
+  const appointment = await prisma.booking.findUnique({
+    where: { id: appointmentId },
+    include: { doctor: true, patient: true }
+  });
+  if (!appointment) throw new Error('Appointment not found');
+  if (appointment.status !== 'COMPLETED') throw new Error('Only completed appointments can be reviewed');
+  if (appointment.doctorId !== doctorId || appointment.patientId !== patientId) throw new Error('You can only review your own completed appointments');
+  // Check if review already exists for this appointment and patient
+  const existing = await prisma.review.findUnique({ where: { appointmentId } });
+  if (existing) throw new Error('You have already reviewed this appointment');
+  // Create review
+  return prisma.review.create({
+    data: {
+      doctorId,
+      patientId,
+      appointmentId,
+      behaviourRating,
+      recommendationRating,
+      reviewText
+    }
+  });
+};
+
+export const getDoctorReviewsService = async (doctorId) => {
+  return prisma.review.findMany({
+    where: { doctorId },
+    include: {
+      patient: { select: { id: true, name: true, email: true } },
+      appointment: { select: { dateTime: true, reason: true } }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+};
+
+export const getDoctorReviewSummaryService = async (doctorId) => {
+  const reviews = await prisma.review.findMany({ where: { doctorId } });
+  const count = reviews.length;
+  if (count === 0) return { count: 0, avgBehaviour: null, avgRecommendation: null };
+  const avgBehaviour = reviews.reduce((sum, r) => sum + r.behaviourRating, 0) / count;
+  const avgRecommendation = reviews.reduce((sum, r) => sum + r.recommendationRating, 0) / count;
+  return {
+    count,
+    avgBehaviour: Number(avgBehaviour.toFixed(2)),
+    avgRecommendation: Number(avgRecommendation.toFixed(2))
+  };
 };

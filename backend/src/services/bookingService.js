@@ -1,11 +1,27 @@
 
 import prisma from '../prisma.js';
+import { create100msRoom, create100msRoomCode } from './videoService.js';
 
 
-export const bookingServiceAddBooking = async (patientId, doctorId, dateTime, reason, symptoms) => {
+export const bookingServiceAddBooking = async (patientId, doctorId, dateTime, reason, symptoms, type = 'PHYSICAL') => {
     // Check if doctor and slot are available (pseudo, implement as needed)
     // For now, assume available
     const status = 'BOOKED'; // Booked by default
+    let videoRoomId = null;
+    if (type === 'VIRTUAL') {
+        try {
+            const room = await create100msRoom(`${patientId}_${doctorId}_${Date.now()}`);
+            console.log('100ms room creation response:', room);
+            const roomId = typeof room === 'string' ? room : (room && room.id ? room.id : null);
+            if (!roomId) throw new Error('Room ID not found in 100ms room creation response');
+            console.log('100ms roomId to use for room code:', roomId);
+            videoRoomId = await create100msRoomCode(roomId); // store room code for prebuilt UI
+            console.log('100ms room code created:', videoRoomId);
+        } catch (err) {
+            console.error('Error during 100ms room/room code creation:', err);
+            throw err;
+        }
+    }
     const booking = await prisma.booking.create({
         data: {
             patientId,
@@ -13,7 +29,45 @@ export const bookingServiceAddBooking = async (patientId, doctorId, dateTime, re
             dateTime: new Date(dateTime),
             reason: reason || null,
             symptoms: symptoms || null,
-            status
+            status,
+            type,
+            videoRoomId
+        }
+    });
+    console.log('Booking created with videoRoomId (roomCode):', videoRoomId);
+    return booking;
+}
+
+export const bookingServiceAddFollowUp = async ({ originalBookingId, dateTime, type = 'PHYSICAL' }) => {
+    // Fetch original booking to get doctorId and patientId
+    const original = await prisma.booking.findUnique({ where: { id: Number(originalBookingId) } });
+    if (!original) {
+        throw new Error('Original booking not found');
+    }
+    const status = 'BOOKED';
+    let videoRoomId = null;
+    if (type === 'VIRTUAL') {
+        try {
+            const room = await create100msRoom(`${original.patientId}_${original.doctorId}_${Date.now()}`);
+            const roomId = typeof room === 'string' ? room : (room && room.id ? room.id : null);
+            if (!roomId) throw new Error('Room ID not found in 100ms room creation response');
+            videoRoomId = await create100msRoomCode(roomId);
+        } catch (err) {
+            console.error('Error during 100ms room/room code creation for follow-up:', err);
+            throw err;
+        }
+    }
+    const booking = await prisma.booking.create({
+        data: {
+            patientId: original.patientId,
+            doctorId: original.doctorId,
+            dateTime: new Date(dateTime),
+            reason: original.reason,
+            symptoms: original.symptoms,
+            status,
+            type,
+            videoRoomId,
+            followUpOfId: original.id
         }
     });
     return booking;

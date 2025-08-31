@@ -5,8 +5,10 @@ import dotenv from 'dotenv';
 import {authMiddleware} from './middlewares/authmiddleware.js';
 import userRouter from './routes/userRoutes.js';
 import adminRouter from './routes/adminRoutes.js';
+import { submitClinicApplication } from './controllers/adminController.js';
 import bookingRouter from './routes/bookRoutes.js';
 import doctorRouter from './routes/doctorRoutes.js';
+import clinicRouter from './routes/clinicRoutes.js';
 import { adminMiddleware } from './middlewares/adminMiddleware.js';
 import { doctorMiddleware} from "./middlewares/doctorMiddleware.js"
 
@@ -31,6 +33,9 @@ app.use('/api/bookings', authMiddleware, bookingRouter);
 
 // Mount doctor routes with proper middleware handling
 app.use("/api/doctor", doctorRouter);
+app.use('/api/clinic', clinicRouter);
+// Public clinic application endpoint
+app.post('/api/clinics/apply', submitClinicApplication);
 app.get('/', (req, res) => {
   res.send('Welcome to the Eshaafi API');
 });

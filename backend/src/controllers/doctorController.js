@@ -3,6 +3,7 @@ import { adminServiceSubmitDoctorApplication } from '../services/adminService.js
 import prisma from '../prisma.js';
 import pkg from '@prisma/client';
 const { Speciality } = pkg;
+import { createReviewService, getDoctorReviewsService, getDoctorReviewSummaryService } from '../services/doctorService.js';
 
 export const getProfileDoctor =async (req,res)=>
 {
@@ -14,7 +15,12 @@ export const getProfileDoctor =async (req,res)=>
         {
             return res.status(404).json({message:"Doctor profile not found"});
         }
-        return res.status(200).json(doctorProfile);
+        // Return education and workExperience as well
+        return res.status(200).json({
+          ...doctorProfile,
+          education: doctorProfile.education || [],
+          workExperience: doctorProfile.workExperience || []
+        });
     }
     catch (error)
     {
@@ -26,7 +32,7 @@ export const getProfileDoctor =async (req,res)=>
 export const addAvailabilityDoctor = async (req, res) => {
     try {
         const doctorId = req.user.id;
-        const { date, startTime, endTime, duration, location } = req.body;
+        const { date, startTime, endTime, duration, location, custom } = req.body;
         
         // First get the doctor record
         const doctor = await prisma.doctor.findUnique({
@@ -37,7 +43,7 @@ export const addAvailabilityDoctor = async (req, res) => {
             return res.status(404).json({ error: 'Doctor not found' });
         }
         
-        const availabilityData = await addAvailabilityService(doctor.id, date, startTime, endTime, duration, location);
+        const availabilityData = await addAvailabilityService(doctor.id, date, startTime, endTime, duration, location, custom);
         res.status(201).json({ message: 'Availability added successfully', availability: availabilityData });
     } catch (error) {
         console.error("Error adding availability:", error);
@@ -59,10 +65,47 @@ export const getDoctorAvailabilityWithBookingsController = async (req, res) => {
 export const getAllDoctorsForBooking = async (req, res) => {
     try {
         const doctors = await getAllDoctorsWithAvailability();
-        res.status(200).json({ doctors });
+        // Return education and workExperience for each doctor
+        res.status(200).json({ doctors: doctors.map(doc => ({
+          ...doc,
+          education: doc.education || [],
+          workExperience: doc.workExperience || []
+        })) });
     } catch (error) {
         console.error("Error fetching doctors:", error);
         res.status(500).json({ error: 'Failed to fetch doctors' });
+    }
+};
+
+// GET /api/doctor/:doctorId - Public endpoint to fetch a doctor's public profile
+export const getDoctorByIdPublic = async (req, res) => {
+    try {
+        const { doctorId } = req.params;
+        const doctor = await prisma.doctor.findUnique({
+            where: { id: Number(doctorId) },
+            include: {
+                user: true,
+                clinic: true,
+            }
+        });
+        if (!doctor) {
+            return res.status(404).json({ error: 'Doctor not found' });
+        }
+        return res.status(200).json({
+            id: doctor.id,
+            name: doctor.user?.name,
+            email: doctor.user?.email,
+            specialty: doctor.specialty,
+            location: doctor.location,
+            education: doctor.education || [],
+            workExperience: doctor.workExperience || [],
+            clinic: doctor.clinic ? { id: doctor.clinic.id, name: doctor.clinic.name, active: typeof doctor.clinic.active === 'boolean' ? doctor.clinic.active : true } : null,
+            online: doctor.online,
+            active: typeof doctor.active === 'boolean' ? doctor.active : true,
+        });
+    } catch (error) {
+        console.error('Error fetching doctor by id:', error);
+        return res.status(500).json({ error: 'Failed to fetch doctor' });
     }
 };
 
@@ -82,7 +125,7 @@ export const addMultipleAvailabilitySlots = async (req, res) => {
 
         const createdSlots = [];
         for (const slot of slots) {
-            const { date, startTime, endTime, duration, location } = slot;
+            const { date, startTime, endTime, duration, location, custom } = slot;
             
             // Check if slot already exists
             const existingSlot = await prisma.availabilitySlot.findFirst({
@@ -102,7 +145,8 @@ export const addMultipleAvailabilitySlots = async (req, res) => {
                         startTime: startTime,
                         endTime: endTime,
                         duration: duration,
-                        location: location || null
+                        location: location || null,
+                        custom: custom || false
                     }
                 });
                 createdSlots.push(newSlot);
@@ -187,7 +231,7 @@ export const getDoctorCountsBySpeciality = async (req, res) => {
 export const updateDoctorProfile = async (req, res) => {
     try {
         const doctorId = req.user.id;
-        const { location, specialty } = req.body;
+        const { location, specialty, education, workExperience } = req.body;
         if (specialty && !Object.values(Speciality).includes(specialty)) {
             return res.status(400).json({ error: 'Invalid specialty' });
         }
@@ -195,7 +239,9 @@ export const updateDoctorProfile = async (req, res) => {
             where: { userId: doctorId },
             data: {
                 location: location || undefined,
-                specialty: specialty || undefined
+                specialty: specialty || undefined,
+                education: education !== undefined ? education : undefined,
+                workExperience: workExperience !== undefined ? workExperience : undefined
             },
             include: {
                 user: true
@@ -233,7 +279,8 @@ export const getDoctorAppointments = async (req, res) => {
                         name: true,
                         email: true
                     }
-                }
+                },
+                review: true
             },
             orderBy: {
                 dateTime: 'desc'
@@ -297,7 +344,7 @@ export const getDoctorAvailability = async (req, res) => {
 
 export const submitDoctorApplication = async (req, res) => {
     try {
-        const { name, email, phone, location, specialty, experienceYears, credentials } = req.body;
+        const { name, email, phone, location, specialty, experienceYears, credentials, education, workExperience, clinicId } = req.body;
         if (!Object.values(Speciality).includes(specialty)) {
             return res.status(400).json({ error: 'Invalid specialty' });
         }
@@ -308,7 +355,10 @@ export const submitDoctorApplication = async (req, res) => {
             location,
             specialty,
             experienceYears: experienceYears ? Number(experienceYears) : null,
-            credentials
+            credentials,
+            education: education || [],
+            workExperience: workExperience || [],
+            clinicId: clinicId ? Number(clinicId) : null
         });
         res.status(201).json({ message: 'Application submitted', application });
     } catch (error) {
@@ -316,3 +366,98 @@ export const submitDoctorApplication = async (req, res) => {
         res.status(400).json({ error: error.message || 'Failed to submit application' });
     }
 }
+
+// Set doctor online/offline status (POST /api/doctor/status)
+export const setDoctorOnlineStatus = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+    const { online } = req.body;
+    const doctor = await prisma.doctor.update({
+      where: { userId: doctorId },
+      data: { online: !!online },
+    });
+    res.status(200).json({ online: doctor.online });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update online status' });
+  }
+};
+
+// Get doctor online status (GET /api/doctor/status/:doctorId)
+export const getDoctorOnlineStatus = async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const doctor = await prisma.doctor.findUnique({
+      where: { id: Number(doctorId) }
+    });
+    if (!doctor) return res.status(404).json({ error: 'Doctor not found' });
+    res.status(200).json({ online: doctor.online });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch online status' });
+  }
+};
+
+// POST /api/doctor/:doctorId/reviews - Create a review (patient only, completed appointment required)
+export const createReview = async (req, res) => {
+  try {
+    const patientId = req.user.id;
+    const { doctorId } = req.params;
+    const { appointmentId, behaviourRating, recommendationRating, reviewText } = req.body;
+    const review = await createReviewService({ doctorId: Number(doctorId), patientId, appointmentId, behaviourRating, recommendationRating, reviewText });
+    res.status(201).json({ message: 'Review submitted successfully', review });
+  } catch (error) {
+    res.status(400).json({ error: error.message || 'Failed to submit review' });
+  }
+};
+
+// GET /api/doctor/:doctorId/reviews - Get all reviews for a doctor (public)
+// GET /api/doctor/reviews - Get doctor's own reviews (protected)
+export const getDoctorReviews = async (req, res) => {
+  try {
+    let doctorId;
+    if (req.params.doctorId) {
+      // Public endpoint - doctorId from params
+      doctorId = Number(req.params.doctorId);
+    } else {
+      // Protected endpoint - doctorId from authenticated user
+      const userId = req.user.id;
+      const doctor = await prisma.doctor.findUnique({
+        where: { userId: userId }
+      });
+      if (!doctor) {
+        return res.status(404).json({ error: 'Doctor not found' });
+      }
+      doctorId = doctor.id;
+    }
+    
+    const reviews = await getDoctorReviewsService(doctorId);
+    res.status(200).json({ reviews });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch reviews' });
+  }
+};
+
+// GET /api/doctor/:doctorId/reviews/summary - Get average ratings and review count (public)
+export const getDoctorReviewSummary = async (req, res) => {
+  try {
+    let doctorId;
+    if (req.params.doctorId) {
+      // Public endpoint - doctorId from params
+      doctorId = Number(req.params.doctorId);
+    } else {
+      // Protected endpoint - doctorId from authenticated user
+      const userId = req.user.id;
+      const doctor = await prisma.doctor.findUnique({
+        where: { userId: userId }
+      });
+      if (!doctor) {
+        return res.status(404).json({ error: 'Doctor not found' });
+      }
+      doctorId = doctor.id;
+    }
+    
+    const summary = await getDoctorReviewSummaryService(doctorId);
+    res.status(200).json(summary);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch review summary' });
+  }
+};

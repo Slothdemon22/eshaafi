@@ -200,8 +200,9 @@ const HomePage: React.FC = () => {
                   src="https://img.freepik.com/premium-vector/doctors-with-stethoscope-group-medical-students-nurses-vector-illustration_650087-840.jpg?w=1000"
                   alt="Professional doctor consultation"
                   fill
-                  className="object-center object-fill rounded-2xl shadow-xl "
+                  className="object-center object-fill rounded-2xl shadow-xl"
                   priority
+                  unoptimized
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-green/20 to-transparent"></div>
               </div>
@@ -287,6 +288,7 @@ const HomePage: React.FC = () => {
                 width={80}
                 height={80}
                 className="h-16 w-auto opacity-60 hover:opacity-100 transition-opacity"
+                unoptimized
               />
             </motion.div>
             <motion.div
@@ -302,6 +304,7 @@ const HomePage: React.FC = () => {
                 width={80}
                 height={80}
                 className="h-16 w-auto opacity-60 hover:opacity-100 transition-opacity"
+                unoptimized
               />
             </motion.div>
             <motion.div
@@ -317,6 +320,7 @@ const HomePage: React.FC = () => {
                 width={80}
                 height={80}
                 className="h-16 w-auto opacity-60 hover:opacity-100 transition-opacity"
+                unoptimized
               />
             </motion.div>
             <motion.div
@@ -332,6 +336,7 @@ const HomePage: React.FC = () => {
                 width={80}
                 height={80}
                 className="h-16 w-auto opacity-60 hover:opacity-100 transition-opacity"
+                unoptimized
               />
             </motion.div>
             <motion.div
@@ -347,6 +352,7 @@ const HomePage: React.FC = () => {
                 width={80}
                 height={80}
                 className="h-16 w-auto opacity-60 hover:opacity-100 transition-opacity"
+                unoptimized
               />
             </motion.div>
             <motion.div
@@ -362,6 +368,7 @@ const HomePage: React.FC = () => {
                 width={80}
                 height={80}
                 className="h-16 w-auto opacity-60 hover:opacity-100 transition-opacity"
+                unoptimized
               />
             </motion.div>
           </div>
@@ -511,6 +518,7 @@ const HomePage: React.FC = () => {
                   alt="Modern medical facility"
                   fill
                   className="object-cover"
+                  unoptimized
                 />
               </div>
             </motion.div>
@@ -625,6 +633,7 @@ const HomePage: React.FC = () => {
                   alt="Doctor consultation"
                   fill
                   className="object-cover"
+                  unoptimized
                 />
               </div>
             </motion.div>

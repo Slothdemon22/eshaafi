@@ -1,14 +1,15 @@
 
-import { bookingServiceAddBooking,bookingServiceDeleteBooking,changeBookingServiceChangeStatus,GetBookedAppointmentService,bookingServiceGetAllBookings, createPrescriptionService, getPrescriptionService, updatePrescriptionService } from '../services/bookingService.js';
+import { bookingServiceAddBooking,bookingServiceDeleteBooking,changeBookingServiceChangeStatus,GetBookedAppointmentService,bookingServiceGetAllBookings, createPrescriptionService, getPrescriptionService, updatePrescriptionService, bookingServiceAddFollowUp } from '../services/bookingService.js';
+import prisma from '../prisma.js';
 
 export const bookAppointment = async (req, res) => {
 
  try
  {
-    const { doctorId, dateTime, reason, symptoms } = req.body;
+    const { doctorId, dateTime, reason, symptoms, type } = req.body;
     const patientId = req.user.id;
-    console.log("Booking appointment with data:", { patientId, doctorId, dateTime, reason, symptoms });
-    const booking = await bookingServiceAddBooking(patientId, doctorId, dateTime, reason, symptoms);
+    console.log("Booking appointment with data:", { patientId, doctorId, dateTime, reason, symptoms, type });
+    const booking = await bookingServiceAddBooking(patientId, doctorId, dateTime, reason, symptoms, type || 'PHYSICAL');
    // console.log("Booking created:", booking);
     res.status(201).json({ message: 'Appointment booked successfully and pending doctor approval', booking });
 
@@ -124,5 +125,33 @@ export const updatePrescription = async (req, res) => {
     } catch (error) {
         console.error("Error updating prescription:", error);
         res.status(500).json({ error: 'Failed to update prescription' });
+    }
+}
+
+export const createFollowUpAppointment = async (req, res) => {
+    try {
+        const { bookingId, dateTime, type } = req.body;
+        if (!bookingId || !dateTime) {
+            return res.status(400).json({ message: 'bookingId and dateTime are required' });
+        }
+        // Ensure only the doctor who owns the original booking can create a follow-up
+        const requesterId = req.user?.id;
+        const requesterRole = req.user?.role;
+        if (!requesterId || requesterRole !== 'DOCTOR') {
+            return res.status(403).json({ message: 'Only doctors can create follow-up appointments' });
+        }
+        const doctor = await prisma.doctor.findUnique({ where: { userId: requesterId } });
+        if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+        const original = await prisma.booking.findUnique({ where: { id: Number(bookingId) } });
+        if (!original) return res.status(404).json({ message: 'Original booking not found' });
+        if (original.doctorId !== doctor.id) {
+            return res.status(403).json({ message: 'You are not authorized to create a follow-up for this booking' });
+        }
+
+        const followUp = await bookingServiceAddFollowUp({ originalBookingId: bookingId, dateTime, type: type || 'PHYSICAL' });
+        res.status(201).json({ message: 'Follow-up appointment created successfully', booking: followUp });
+    } catch (error) {
+        console.error('Error creating follow-up:', error);
+        res.status(500).json({ error: 'Failed to create follow-up appointment' });
     }
 }
