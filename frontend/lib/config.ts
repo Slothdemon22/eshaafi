@@ -1,7 +1,22 @@
 // Environment configuration
 export const config = {
-  backendUri: "http://16.176.230.109:5000",
+  backendUri: process.env.NEXT_PUBLIC_BACKEND_URI || "http://localhost:5000",
+  isProduction: process.env.NODE_ENV === 'production',
+  isDevelopment: process.env.NODE_ENV === 'development',
 } as const;
+
+// Helper function to fix localhost URLs in production
+export const fixImageUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  
+  // If we're in production and the URL contains localhost, replace it
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    // Replace localhost URLs with the current domain
+    return url.replace(/http:\/\/localhost:\d+/, window.location.origin);
+  }
+  
+  return url;
+};
 
 // API endpoints
 export const API_ENDPOINTS = {

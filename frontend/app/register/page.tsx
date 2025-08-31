@@ -50,12 +50,34 @@ const RegisterPage: React.FC = () => {
         title: 'Registration Successful',
         message: 'Welcome to Eshaafi! Your account has been created.',
       });
-      router.push('/');
+      
+      // AuthContext will automatically redirect to appropriate dashboard
     } catch (error: any) {
+      // Handle specific error messages from backend
+      let errorMessage = 'Please try again with different credentials.';
+      
+      if (error.message) {
+        if (error.message.includes('Email already registered')) {
+          errorMessage = 'This email is already registered. Please use a different email or try logging in.';
+        } else if (error.message.includes('Name, email, and password are required')) {
+          errorMessage = 'Please fill in all required fields.';
+        } else if (error.message.includes('Name must be at least 2 characters long')) {
+          errorMessage = 'Name must be at least 2 characters long.';
+        } else if (error.message.includes('Please enter a valid email address')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (error.message.includes('Password must be at least 6 characters long')) {
+          errorMessage = 'Password must be at least 6 characters long.';
+        } else if (error.message.includes('Invalid data provided')) {
+          errorMessage = 'Please check your input and try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       addToast({
         type: 'error',
         title: 'Registration Failed',
-        message: error.message || 'Please try again with different credentials.',
+        message: errorMessage,
       });
     } finally {
       setIsLoading(false);

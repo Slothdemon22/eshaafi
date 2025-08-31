@@ -50,11 +50,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuthStatus();
   }, []);
 
-  // Redirect super admin to dashboard when authenticated
+  // Redirect users to their appropriate dashboard when authenticated
   useEffect(() => {
-    if (!loading && user?.role === 'SUPER_ADMIN') {
+    if (!loading && user) {
       if (pathname === '/' || pathname === '/login' || pathname === '/register') {
-        router.push('/admin/dashboard');
+        if (user.role === 'SUPER_ADMIN') {
+          router.push('/admin/dashboard');
+        } else if (user.role === 'ADMIN') {
+          router.push('/admin/dashboard');
+        } else if (user.role === 'DOCTOR') {
+          router.push('/doctor/dashboard');
+        } else if (user.role === 'CLINIC_ADMIN') {
+          router.push('/clinic/dashboard');
+        } else if (user.role === 'PATIENT') {
+          router.push('/appointments');
+        }
       }
     }
   }, [loading, user, pathname, router]);

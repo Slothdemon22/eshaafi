@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { API_ENDPOINTS, buildApiUrl } from '@/lib/config';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toaster';
@@ -90,8 +91,14 @@ const PublicClinicsPage: React.FC = () => {
               <Link key={c.id} href={`/clinics/${c.id}`} className="card-hover p-4">
                 <div className="flex items-center gap-3 mb-2">
                   {c.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.logoUrl} alt={c.name} className="h-10 w-10 rounded object-cover border" />
+                    <Image
+                      src={c.logoUrl}
+                      alt={c.name}
+                      width={40}
+                      height={40}
+                      className="h-10 w-10 rounded object-cover border"
+                      unoptimized
+                    />
                   ) : (
                     <div className="h-10 w-10 rounded bg-gray-100" />)
                   }

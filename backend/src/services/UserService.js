@@ -10,6 +10,15 @@ export const authServiceRegister = async (name ,email,password)=>
 {
     console.log("Auth Service Register called with:", { name, email });
 
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (existingUser) {
+      throw new Error('Email already registered');
+    }
+
     const user = await prisma.user.create({
       data: {
         name,
@@ -41,12 +50,12 @@ export  const authServiceLogin = async (email,password) => {
   
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('Invalid email or password');
   }
   
 
   const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) throw new Error('Invalid credentials');
+  if (!isMatch) throw new Error('Invalid email or password');
 
   return user;
 }

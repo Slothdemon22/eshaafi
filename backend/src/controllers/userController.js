@@ -9,31 +9,70 @@ export const registerUser = async (req, res) => {
     const {name,email,password}=req.body;
     const userData= await authServiceRegister(name,email,password);
 
-    res.status(201).json({ message: 'User registered successfully', user: userData   });
+    // Set JWT token after successful registration (same as login)
+    const token = jwt.sign({ id: userData.id, role: userData.role, email: userData.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // only https in prod
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000 // 1 day
+    });
+
+    res.status(201).json({ message: 'User registered successfully', user: userData });
   } catch (error) {
     console.error("Error registering user:", error);
-    res.status(500).json({ error: 'Failed to register user' });
+    
+    // Handle specific errors with appropriate status codes
+    if (error.message === 'Email already registered') {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+    
+    // Handle validation errors
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+    
+    // Handle other database errors
+    if (error.code && error.code.startsWith('P')) {
+      return res.status(400).json({ error: 'Invalid data provided' });
+    }
+    
+    // Generic server error for unexpected issues
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
 
 export const loginUser=async (req,res)=>
 {
-   const {email,password}=req.body;
-   const userData=await authServiceLogin(email,password);
+  try {
+    const {email,password}=req.body;
+    const userData=await authServiceLogin(email,password);
   
 
-  const token = jwt.sign({ id: userData.id, role: userData.role, email: userData.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: userData.id, role: userData.role, email: userData.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-  res.cookie('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // only https in prod
-    sameSite: 'strict',
-    maxAge: 24 * 60 * 60 * 1000 // 1 dayz
-  });
-  return res.status(200).json({
-    message: 'Login successful',
-    user: userData
-  });
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // only https in prod
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000 // 1 dayz
+    });
+    return res.status(200).json({
+      message: 'Login successful',
+      user: userData
+    });
+  } catch (error) {
+    console.error("Error during login:", error);
+    
+    // Handle authentication errors
+    if (error.message === 'Invalid email or password') {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    
+    // Generic server error for unexpected issues
+    res.status(500).json({ error: 'Internal server error' });
+  }
 }
 
 export const logoutUser = async (req, res) => {
