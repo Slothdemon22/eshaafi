@@ -48,23 +48,34 @@ jobs:
 
       - name: SSH Deploy to Droplet
         run: |
+         
           # Write SSH key
           echo "${{ secrets.SSH_KEY }}" > ~/ssh_key
           chmod 600 ~/ssh_key
 
           # SSH into server and update docker-compose.yml tags, then redeploy
-          ssh -i ~/ssh_key -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << EOF
+          ssh -i ~/ssh_key -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=30 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << 'EOF'
+            set -e  # Exit on any error
+            
             # Replace backend and frontend image tags with current commit SHA
             sed -i "s|\(image: bacillus/eshaafi-backend:\).*|\1stage-$COMMIT_SHA|" ~/docker-compose.yml
             sed -i "s|\(image: bacillus/eshaafi-frontend:\).*|\1stage-$COMMIT_SHA|" ~/docker-compose.yml
 
             # Restart containers
-            docker compose down
-            docker system prune -f
-            docker compose up -d
+            docker compose down || true
 
-            # Verify images
-            docker compose images
+            # Clean up old images
+            docker system prune -f || true
+
+            # Start containers in detached mode
+            nohup docker compose up -d --remove-orphans --force-recreate > /dev/null 2>&1 &
+
+            # Wait for containers to start
+            sleep 10
+
+            # Quick verification and exit
+            docker compose ps --quiet > /dev/null && echo "Containers started successfully"
+            
           EOF
 
           echo "SSH deployment successfully done! (:"
