@@ -40,7 +40,7 @@ jobs:
           docker tag ${{ secrets.IMAGE_NAME }}-frontend:$COMMIT_SHA ${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}-frontend:$COMMIT_SHA
           docker push ${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}-frontend:stage-$COMMIT_SHA
 
-          docker tag ${{ secrets.IMAGE_NAME }}-backend:$COMMIT_SHA ${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}-frontend:$COMMIT_SHA
+          docker tag ${{ secrets.IMAGE_NAME }}-backend:$COMMIT_SHA ${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}-backend:$COMMIT_SHA
           docker push ${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}-backend:stage-$COMMIT_SHA
 
       - name: List Docker images
