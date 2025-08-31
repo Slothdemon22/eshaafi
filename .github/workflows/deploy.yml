@@ -52,20 +52,19 @@ jobs:
           echo "${{ secrets.SSH_KEY }}" > ~/ssh_key
           chmod 600 ~/ssh_key
 
-          # SSH into server and run commands
+          # SSH into server and update docker-compose.yml tags, then redeploy
           ssh -i ~/ssh_key -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-            sed -i "s|\(image: bacillus/eshaafi-backend:\)stage-.*|\1stage-$COMMIT_SHA|" ~/docker-compose.yml
-
-            # Update frontend image tag
-            sed -i "s|\(image: bacillus/eshaafi-frontend:\)stage-.*|\1stage-$COMMIT_SHA|" ~/docker-compose.yml
+            # Update backend and frontend image tags with commit SHA
+            sed -i "s|^\(\s*image:\s*bacillus/eshaafi-backend:\).*|\1stage-$COMMIT_SHA|" ~/docker-compose.yml
+            sed -i "s|^\(\s*image:\s*bacillus/eshaafi-frontend:\).*|\1stage-$COMMIT_SHA|" ~/docker-compose.yml
 
             # Restart containers
             docker compose down
             docker system prune -f
             docker compose up -d
 
-            # Check updated images
-            docker images | grep eshaafi
+            # Verify images
+            docker compose images
           EOF
 
           echo "SSH deployment successfully done! (:"
