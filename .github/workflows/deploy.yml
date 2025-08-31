@@ -24,6 +24,7 @@ jobs:
         run: |
           cd frontend
           docker build -t ${{ secrets.IMAGE_NAME }}-frontend:$COMMIT_SHA .
+          cd ..
           cd backend
           docker build -t ${{ secrets.IMAGE_NAME }}-backend:$COMMIT_SHA .
 
