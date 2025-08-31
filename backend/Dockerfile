@@ -1,10 +1,10 @@
-# Use Node.js LTS image
-FROM node:18
+# Use lightweight Node.js LTS (Alpine)
+FROM node:18-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Install dependencies first (better layer caching)
 COPY package*.json ./
 RUN npm install
 
@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 5000
 
 # Start the backend server
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "start"]

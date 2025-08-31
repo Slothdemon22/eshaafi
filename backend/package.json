@@ -5,7 +5,12 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+<<<<<<< HEAD
     "dev": "nodemon src/index.js"
+=======
+    "dev": "nodemon src/index.js",
+    "start":"npx prisma generate && npx prisma migrate dev --name test-migration-v1  && node src/index.js"
+>>>>>>> 2b5232d (Ci setup)
   },
   "keywords": [],
   "author": "",

@@ -22,7 +22,9 @@ app.use(cookieParser());
 app.use(cors({
   origin: [
     'http://localhost:3000', // your frontend
-    'https://web.postman.co/' // Postman Web
+    'https://web.postman.co/', // Postman Web
+    "http://16.176.230.109:3000",
+    "http://139.59.3.40:3000"
   ],
   credentials: true
 }));
@@ -40,5 +42,5 @@ app.get('/', (req, res) => {
   res.send('Welcome to the Eshaafi API');
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT =  5000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

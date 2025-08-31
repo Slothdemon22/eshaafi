@@ -1,0 +1,26 @@
+name: CI - Build Docker Image
+
+on:
+  push:
+    branches:
+      - main   # only build on main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Show Docker version
+        run: docker --version
+
+      - name: Build Docker image
+        run: |
+          echo "Building image from Dockerfile..."
+          docker build -t test-image:ci .
+          echo "Image build complete ✅"
+
+      - name: List Docker images
+        run: docker images
