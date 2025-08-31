@@ -58,23 +58,11 @@ jobs:
             sed -i "s|\(image: bacillus/eshaafi-backend:\).*|\1stage-$COMMIT_SHA|" ~/docker-compose.yml
             sed -i "s|\(image: bacillus/eshaafi-frontend:\).*|\1stage-$COMMIT_SHA|" ~/docker-compose.yml
 
-              # Start containers in detached mode
-          docker compose up -d --remove-orphans --force-recreate
+           docker compose down 
+           docker system prune -f
+           docker compose up -d
 
-          # Wait for containers to start
-          sleep 10
-
-          # Verify containers are running with correct images
-          echo "Verifying deployment..."
-          docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Image}}"
-          
-          # Final verification - check if containers are actually running
-          if docker compose ps --quiet > /dev/null; then
-            echo "✅ Deployment successful! All containers are running with stage-$COMMIT_SHA images."
-          else
-            echo "❌ Deployment failed! Containers are not running properly."
-            exit 1
-          fi
+           
             
           EOF
 
