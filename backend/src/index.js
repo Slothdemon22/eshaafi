@@ -25,7 +25,7 @@ app.use(cors({
     'https://web.postman.co/', // Postman Web
     "http://16.176.230.109:3000",
     "http://139.59.3.40:3000",
-    "http://3.27.92.43:3000"
+    "http://3.27.43.88:3000"
 
   ],
   credentials: true
