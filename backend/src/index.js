@@ -16,9 +16,6 @@ dotenv.config();
 
 
 const app = express();
-
-app.use(express.json());
-app.use(cookieParser());
 app.use(cors({
   origin: [
     'http://localhost:3000', // your frontend
@@ -30,6 +27,9 @@ app.use(cors({
   ],
   credentials: true
 }));
+app.use(express.json());
+app.use(cookieParser());
+
 // Routes
 app.use('/api/users', userRouter);
 app.use('/api/admin', adminMiddleware, adminRouter);
