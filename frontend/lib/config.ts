@@ -1,7 +1,7 @@
 // Environment configuration
 export const config = {
 
-  backendUri: process.env.NEXT_PUBLIC_BACKEND_URI || "http://139.59.3.40:5000",
+  backendUri: process.env.NEXT_PUBLIC_BACKEND_URI || "http://3.27.43.88:5000",
 
   isProduction: process.env.NODE_ENV === 'production',
   isDevelopment: process.env.NODE_ENV === 'development',
