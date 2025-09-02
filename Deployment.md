@@ -93,12 +93,22 @@ volumes:
 
 ### Step 1: Setup
 ```bash
-# Create folder
+# Create deployment folder
 mkdir eshaafi-deployment
 cd eshaafi-deployment
 
-# Create the files above (.env and docker-compose.yml)
-# Edit .env with your actual values
+# Create .env file (copy content from above)
+nano .env
+
+# Create docker-compose.yml file (copy content from above)  
+nano docker-compose.yml
+
+# Your folder should now have:
+# eshaafi-deployment/
+# ├── .env
+# └── docker-compose.yml
+
+# Edit .env with your actual server IP and credentials
 ```
 
 ### Step 2: Deploy
