@@ -24,7 +24,9 @@ app.use(cors({
     'http://localhost:3000', // your frontend
     'https://web.postman.co/', // Postman Web
     "http://16.176.230.109:3000",
-    "http://139.59.3.40:3000"
+    "http://139.59.3.40:3000",
+    "http://3.27.92.43:3000"
+
   ],
   credentials: true
 }));
